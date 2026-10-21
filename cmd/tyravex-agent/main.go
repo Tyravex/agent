@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -74,7 +75,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	address, err := api.ListenAddress("127.0.0.1:8080")
+	address, err := config.ValidateAPIListen(cfg.APIListen)
 	if err != nil {
 		log.Printf("API configuration error: %v", err)
 		os.Exit(1)
@@ -90,12 +91,18 @@ func main() {
 		MaxHeaderBytes:    16 << 10,
 	}
 
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Printf("HTTP API listen error: %v", err)
+		os.Exit(1)
+	}
+
 	listenErr := make(chan error, 1)
 
 	go func() {
-		log.Printf("Tyravex Agent HTTP API listening on %s", address)
+		log.Printf("Tyravex Agent HTTP API listening on %s", listener.Addr())
 
-		err := httpServer.ListenAndServe()
+		err := httpServer.Serve(listener)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			listenErr <- err
 		}

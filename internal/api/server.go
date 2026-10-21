@@ -54,7 +54,7 @@ func (s *Server) authorize(next http.Handler) http.Handler {
 
 		provided := strings.TrimPrefix(header, prefix)
 
-		expectedHash := sha256.Sum256([]byte(s.cfg.NodeToken))
+		expectedHash := sha256.Sum256([]byte(s.cfg.APIToken))
 		providedHash := sha256.Sum256([]byte(provided))
 
 		if provided == "" ||

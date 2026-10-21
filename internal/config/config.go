@@ -4,14 +4,18 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"go.yaml.in/yaml/v3"
 )
+
+const DefaultAPIListen = "127.0.0.1:8080"
 
 type Config struct {
 	PanelURL          string
@@ -20,6 +24,8 @@ type Config struct {
 	HeartbeatInterval time.Duration
 	DockerEnabled     bool
 	DockerHost        string
+	APIListen         string
+	APIToken          string
 }
 
 type fileConfig struct {
@@ -40,6 +46,11 @@ type fileConfig struct {
 		Enabled bool   `yaml:"enabled"`
 		Host    string `yaml:"host"`
 	} `yaml:"docker"`
+
+	API struct {
+		Listen string `yaml:"listen"`
+		Token  string `yaml:"token"`
+	} `yaml:"api"`
 }
 
 func Load() (Config, error) {
@@ -53,12 +64,16 @@ func LoadFile(path string) (Config, error) {
 	}
 
 	var raw fileConfig
-
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
 	decoder.KnownFields(true)
 
 	if err := decoder.Decode(&raw); err != nil {
 		return Config{}, fmt.Errorf("parse configuration: %w", err)
+	}
+
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return Config{}, errors.New("configuration must contain one YAML document")
 	}
 
 	cfg, err := FromValues(
@@ -74,7 +89,44 @@ func LoadFile(path string) (Config, error) {
 	cfg.DockerEnabled = raw.Docker.Enabled
 	cfg.DockerHost = strings.TrimSpace(raw.Docker.Host)
 
+	cfg.APIListen, err = ValidateAPIListen(raw.API.Listen)
+	if err != nil {
+		return Config{}, err
+	}
+
+	cfg.APIToken = strings.TrimSpace(raw.API.Token)
+	if len(cfg.APIToken) < 32 {
+		return Config{}, errors.New("api.token must contain at least 32 characters")
+	}
+	if cfg.APIToken == cfg.NodeToken {
+		return Config{}, errors.New("api.token must differ from node.token")
+	}
+
 	return cfg, nil
+}
+
+func ValidateAPIListen(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		value = DefaultAPIListen
+	}
+
+	host, port, err := net.SplitHostPort(value)
+	if err != nil {
+		return "", errors.New("api.listen must be a valid host:port address")
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil || !ip.IsLoopback() {
+		return "", errors.New("api.listen must use a loopback IP address")
+	}
+
+	number, err := strconv.Atoi(port)
+	if err != nil || number < 1 || number > 65535 {
+		return "", errors.New("api.listen port must be between 1 and 65535")
+	}
+
+	return net.JoinHostPort(host, port), nil
 }
 
 func FromValues(
@@ -142,5 +194,6 @@ func FromValues(
 		NodeID:            nodeID,
 		NodeToken:         nodeToken,
 		HeartbeatInterval: interval,
+		APIListen:         DefaultAPIListen,
 	}, nil
 }

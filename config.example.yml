@@ -1,5 +1,7 @@
-# Tyravex Agent — example configuration
-# Copy this file to config.yml and fill in your values.
+
+# Tyravex Agent configuration
+# Copy to config.yml and fill in your values.
+# Never commit config.yml to Git.
 
 panel:
   url: "https://panel.example.com"
@@ -20,5 +22,12 @@ docker:
   # Linux:
   # host: "unix:///var/run/docker.sock"
 
-  # Empty means Docker SDK default:
   host: ""
+
+api:
+  # Only loopback addresses are accepted.
+  listen: "127.0.0.1:8080"
+
+  # Generate a separate random token (at least 32 characters).
+  # Must differ from node.token.
+  token: "REPLACE_WITH_A_SEPARATE_RANDOM_API_TOKEN"

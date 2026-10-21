@@ -12,7 +12,8 @@ import (
 func testServer() *Server {
 	return NewServer(config.Config{
 		NodeID:        "test-node",
-		NodeToken:     "test-secret-token",
+		NodeToken:     "heartbeat-secret-token",
+		APIToken:      "test-api-secret-token",
 		DockerEnabled: false,
 	})
 }
@@ -38,7 +39,11 @@ func TestHealth(t *testing.T) {
 }
 
 func TestStatusUnauthorized(t *testing.T) {
-	for _, token := range []string{"", "wrong-token"} {
+	for _, token := range []string{
+		"",
+		"wrong-token",
+		"heartbeat-secret-token",
+	} {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/status", nil)
 
 		if token != "" {
@@ -56,7 +61,7 @@ func TestStatusUnauthorized(t *testing.T) {
 
 func TestStatusAuthorized(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/status", nil)
-	req.Header.Set("Authorization", "Bearer test-secret-token")
+	req.Header.Set("Authorization", "Bearer test-api-secret-token")
 
 	rec := httptest.NewRecorder()
 	testServer().Handler().ServeHTTP(rec, req)
@@ -81,13 +86,17 @@ func TestStatusAuthorized(t *testing.T) {
 
 func TestDockerDisabled(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/docker", nil)
-	req.Header.Set("Authorization", "Bearer test-secret-token")
+	req.Header.Set("Authorization", "Bearer test-api-secret-token")
 
 	rec := httptest.NewRecorder()
 	testServer().Handler().ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d", rec.Code)
+		t.Fatalf(
+			"expected 503, got %d: %s",
+			rec.Code,
+			rec.Body.String(),
+		)
 	}
 }
 

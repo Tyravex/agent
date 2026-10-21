@@ -22,6 +22,9 @@ heartbeat:
 docker:
   enabled: true
   host: "npipe:////./pipe/docker_engine"
+api:
+  listen: "127.0.0.1:8080"
+  token: "1234567890abcdef1234567890abcdef"
 `
 
 	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
@@ -43,6 +46,14 @@ docker:
 
 	if !cfg.DockerEnabled {
 		t.Fatal("Docker should be enabled")
+	}
+
+	if cfg.APIListen != "127.0.0.1:8080" {
+		t.Fatalf("unexpected API address: %s", cfg.APIListen)
+	}
+
+	if cfg.APIToken != "1234567890abcdef1234567890abcdef" {
+		t.Fatal("unexpected API token")
 	}
 }
 
