@@ -11,6 +11,7 @@ import (
 	"github.com/Tyravex/agent/internal/agent"
 	"github.com/Tyravex/agent/internal/config"
 	"github.com/Tyravex/agent/internal/docker"
+	"github.com/Tyravex/agent/internal/version"
 )
 
 func main() {
@@ -23,6 +24,33 @@ func main() {
 
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
+		case "version":
+			if len(os.Args) > 3 ||
+				(len(os.Args) == 3 && os.Args[2] != "--json") {
+				log.Println("Usage: tyravex-agent version [--json]")
+				os.Exit(1)
+			}
+
+			if len(os.Args) == 3 {
+				data, err := version.JSON()
+				if err != nil {
+					log.Printf("Version error: %v", err)
+					os.Exit(1)
+				}
+
+				fmt.Println(string(data))
+				return
+			}
+
+			info := version.Current()
+
+			fmt.Printf("Tyravex Agent v%s\n", info.Version)
+			fmt.Printf("Commit: %s\n", info.Commit)
+			fmt.Printf("Built: %s\n", info.BuildDate)
+			fmt.Printf("Go: %s\n", info.GoVersion)
+			fmt.Printf("Platform: %s/%s\n", info.OS, info.Arch)
+
+			return
 		case "docker-info":
 			if err := printDockerInfo(ctx); err != nil {
 				log.Printf("Docker error: %v", err)
