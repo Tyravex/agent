@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Tyravex/agent/internal/agent"
+	"github.com/Tyravex/agent/internal/api"
 	"github.com/Tyravex/agent/internal/config"
 	"github.com/Tyravex/agent/internal/docker"
 	"github.com/Tyravex/agent/internal/version"
@@ -49,8 +53,8 @@ func main() {
 			fmt.Printf("Built: %s\n", info.BuildDate)
 			fmt.Printf("Go: %s\n", info.GoVersion)
 			fmt.Printf("Platform: %s/%s\n", info.OS, info.Arch)
-
 			return
+
 		case "docker-info":
 			if err := printDockerInfo(ctx); err != nil {
 				log.Printf("Docker error: %v", err)
@@ -70,8 +74,63 @@ func main() {
 		os.Exit(1)
 	}
 
-	runner := agent.NewRunner(cfg)
-	runner.Run(ctx)
+	address, err := api.ListenAddress("127.0.0.1:8080")
+	if err != nil {
+		log.Printf("API configuration error: %v", err)
+		os.Exit(1)
+	}
+
+	httpServer := &http.Server{
+		Addr:              address,
+		Handler:           api.NewServer(cfg).Handler(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    16 << 10,
+	}
+
+	listenErr := make(chan error, 1)
+
+	go func() {
+		log.Printf("Tyravex Agent HTTP API listening on %s", address)
+
+		err := httpServer.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			listenErr <- err
+		}
+	}()
+
+	runnerCtx, cancelRunner := context.WithCancel(ctx)
+	defer cancelRunner()
+
+	runnerDone := make(chan struct{})
+
+	go func() {
+		defer close(runnerDone)
+		agent.NewRunner(cfg).Run(runnerCtx)
+	}()
+
+	select {
+	case <-ctx.Done():
+	case err := <-listenErr:
+		log.Printf("HTTP API error: %v", err)
+	}
+
+	cancelRunner()
+
+	shutdownCtx, cancelShutdown := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+	defer cancelShutdown()
+
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("HTTP API shutdown error: %v", err)
+	}
+
+	<-runnerDone
+	log.Println("Tyravex Agent shutdown complete")
 }
 
 func printDockerInfo(ctx context.Context) error {
