@@ -1,0 +1,21 @@
+# Build outputs
+/bin/
+/dist/
+*.exe
+*.exe~
+*.test
+
+# Local credentials
+.env
+.env.*
+!.env.example
+config.yml
+config.yaml
+
+# IDE
+.vscode/
+.idea/
+
+# Operating system
+.DS_Store
+Thumbs.db
