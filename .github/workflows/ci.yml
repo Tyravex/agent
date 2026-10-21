@@ -1,9 +1,11 @@
+
 name: CI
 
 on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -24,7 +26,7 @@ jobs:
           - windows-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Go
@@ -33,11 +35,13 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Verify formatting
+      - name: Verify Go formatting
         shell: bash
         run: |
           files="$(gofmt -l $(git ls-files '*.go'))"
+
           if [ -n "$files" ]; then
+            echo "The following Go files are not formatted:"
             echo "$files"
             exit 1
           fi
@@ -46,6 +50,12 @@ jobs:
         run: go vet ./...
 
       - name: Go tests
+        run: go test ./...
+
+      - name: Go race tests (Linux)
+        if: runner.os == 'Linux'
+        env:
+          CGO_ENABLED: "1"
         run: go test -race ./...
 
       - name: Go build

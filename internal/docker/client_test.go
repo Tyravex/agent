@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"runtime"
 	"testing"
 )
 
@@ -20,6 +21,10 @@ func TestNewClientInvalidHost(t *testing.T) {
 }
 
 func TestNewClientWindowsPipe(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows named pipes are only supported on Windows")
+	}
+
 	c, err := NewClientWithHost(
 		"npipe:////./pipe/docker_engine",
 	)
@@ -30,6 +35,10 @@ func TestNewClientWindowsPipe(t *testing.T) {
 }
 
 func TestNewClientUnixSocket(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix socket client is tested on Linux")
+	}
+
 	c, err := NewClientWithHost(
 		"unix:///var/run/docker.sock",
 	)
