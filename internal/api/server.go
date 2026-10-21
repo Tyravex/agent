@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"log"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -130,21 +129,4 @@ func writeJSON(w http.ResponseWriter, status int, data any) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("HTTP response encoding error: %v", err)
 	}
-}
-
-func ListenAddress(value string) (string, error) {
-	host, port, err := net.SplitHostPort(value)
-	if err != nil || port == "" {
-		return "", &net.AddrError{Err: "invalid listen address", Addr: value}
-	}
-
-	ip := net.ParseIP(host)
-	if ip == nil || !ip.IsLoopback() {
-		return "", &net.AddrError{
-			Err:  "API must listen on a loopback IP address",
-			Addr: value,
-		}
-	}
-
-	return value, nil
 }

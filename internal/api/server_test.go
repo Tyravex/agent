@@ -110,30 +110,3 @@ func TestMethodNotAllowed(t *testing.T) {
 		t.Fatalf("expected 405, got %d", rec.Code)
 	}
 }
-
-func TestListenAddress(t *testing.T) {
-	valid := []string{
-		"127.0.0.1:8080",
-		"[::1]:8080",
-	}
-
-	for _, address := range valid {
-		if _, err := ListenAddress(address); err != nil {
-			t.Errorf("expected valid address %q: %v", address, err)
-		}
-	}
-
-	invalid := []string{
-		"0.0.0.0:8080",
-		":8080",
-		"192.168.1.10:8080",
-		"localhost:8080",
-		"invalid",
-	}
-
-	for _, address := range invalid {
-		if _, err := ListenAddress(address); err == nil {
-			t.Errorf("expected invalid address: %q", address)
-		}
-	}
-}

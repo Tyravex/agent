@@ -20,6 +20,13 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Printf("Tyravex Agent error: %v", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -32,19 +39,19 @@ func main() {
 		case "version":
 			if len(os.Args) > 3 ||
 				(len(os.Args) == 3 && os.Args[2] != "--json") {
-				log.Println("Usage: tyravex-agent version [--json]")
-				os.Exit(1)
+				return errors.New(
+					"usage: tyravex-agent version [--json]",
+				)
 			}
 
 			if len(os.Args) == 3 {
 				data, err := version.JSON()
 				if err != nil {
-					log.Printf("Version error: %v", err)
-					os.Exit(1)
+					return fmt.Errorf("version JSON: %w", err)
 				}
 
 				fmt.Println(string(data))
-				return
+				return nil
 			}
 
 			info := version.Current()
@@ -54,31 +61,32 @@ func main() {
 			fmt.Printf("Built: %s\n", info.BuildDate)
 			fmt.Printf("Go: %s\n", info.GoVersion)
 			fmt.Printf("Platform: %s/%s\n", info.OS, info.Arch)
-			return
+
+			return nil
 
 		case "docker-info":
-			if err := printDockerInfo(ctx); err != nil {
-				log.Printf("Docker error: %v", err)
-				os.Exit(1)
-			}
-			return
+			return printDockerInfo(ctx)
 
 		default:
-			log.Printf("Unknown command: %s", os.Args[1])
-			os.Exit(1)
+			return fmt.Errorf(
+				"unknown command: %s",
+				os.Args[1],
+			)
 		}
 	}
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.Printf("Configuration error: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("configuration: %w", err)
 	}
 
+	return runAgent(ctx, cfg)
+}
+
+func runAgent(ctx context.Context, cfg config.Config) error {
 	address, err := config.ValidateAPIListen(cfg.APIListen)
 	if err != nil {
-		log.Printf("API configuration error: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("API configuration: %w", err)
 	}
 
 	httpServer := &http.Server{
@@ -93,19 +101,19 @@ func main() {
 
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		log.Printf("HTTP API listen error: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("HTTP API listen: %w", err)
 	}
+	defer listener.Close()
 
 	listenErr := make(chan error, 1)
 
 	go func() {
-		log.Printf("Tyravex Agent HTTP API listening on %s", listener.Addr())
+		log.Printf(
+			"Tyravex Agent HTTP API listening on %s",
+			listener.Addr(),
+		)
 
-		err := httpServer.Serve(listener)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			listenErr <- err
-		}
+		listenErr <- httpServer.Serve(listener)
 	}()
 
 	runnerCtx, cancelRunner := context.WithCancel(ctx)
@@ -118,10 +126,14 @@ func main() {
 		agent.NewRunner(cfg).Run(runnerCtx)
 	}()
 
+	var serverErr error
+
 	select {
 	case <-ctx.Done():
 	case err := <-listenErr:
-		log.Printf("HTTP API error: %v", err)
+		if !errors.Is(err, http.ErrServerClosed) {
+			serverErr = fmt.Errorf("HTTP API server: %w", err)
+		}
 	}
 
 	cancelRunner()
@@ -133,11 +145,24 @@ func main() {
 	defer cancelShutdown()
 
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
-		log.Printf("HTTP API shutdown error: %v", err)
+		serverErr = errors.Join(
+			serverErr,
+			fmt.Errorf("HTTP API shutdown: %w", err),
+		)
+
+		if closeErr := httpServer.Close(); closeErr != nil {
+			serverErr = errors.Join(
+				serverErr,
+				fmt.Errorf("HTTP API close: %w", closeErr),
+			)
+		}
 	}
 
 	<-runnerDone
+
 	log.Println("Tyravex Agent shutdown complete")
+
+	return serverErr
 }
 
 func printDockerInfo(ctx context.Context) error {
@@ -147,7 +172,9 @@ func printDockerInfo(ctx context.Context) error {
 	}
 
 	if !cfg.DockerEnabled {
-		return fmt.Errorf("Docker integration is disabled in config.yml")
+		return fmt.Errorf(
+			"Docker integration is disabled in config.yml",
+		)
 	}
 
 	dockerClient, err := docker.NewClientWithHost(cfg.DockerHost)
