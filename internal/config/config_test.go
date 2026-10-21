@@ -40,7 +40,7 @@ func TestAcceptRemoteHTTPS(t *testing.T) {
 		"https://panel.example.com",
 		"node-123",
 		"secret-token",
-		"15000",
+		"15s",
 	)
 
 	if err != nil {

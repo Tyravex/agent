@@ -5,6 +5,12 @@
 *.exe~
 *.test
 
+# Agent configuration with credentials
+/config.yml
+/config.yaml
+/config.local.yml
+/config.local.yaml
+
 # Local credentials
 .env
 .env.*

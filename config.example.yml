@@ -1,0 +1,24 @@
+# Tyravex Agent — example configuration
+# Copy this file to config.yml and fill in your values.
+
+panel:
+  url: "https://panel.example.com"
+
+node:
+  id: "YOUR_NODE_ID"
+  token: "YOUR_NODE_TOKEN"
+
+heartbeat:
+  interval: "30s"
+
+docker:
+  enabled: true
+
+  # Windows / Docker Desktop:
+  # host: "npipe:////./pipe/docker_engine"
+
+  # Linux:
+  # host: "unix:///var/run/docker.sock"
+
+  # Empty means Docker SDK default:
+  host: ""

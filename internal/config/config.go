@@ -1,14 +1,16 @@
 package config
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
+
+	"go.yaml.in/yaml/v3"
 )
 
 type Config struct {
@@ -16,39 +18,91 @@ type Config struct {
 	NodeID            string
 	NodeToken         string
 	HeartbeatInterval time.Duration
+	DockerEnabled     bool
+	DockerHost        string
+}
+
+type fileConfig struct {
+	Panel struct {
+		URL string `yaml:"url"`
+	} `yaml:"panel"`
+
+	Node struct {
+		ID    string `yaml:"id"`
+		Token string `yaml:"token"`
+	} `yaml:"node"`
+
+	Heartbeat struct {
+		Interval string `yaml:"interval"`
+	} `yaml:"heartbeat"`
+
+	Docker struct {
+		Enabled bool   `yaml:"enabled"`
+		Host    string `yaml:"host"`
+	} `yaml:"docker"`
 }
 
 func Load() (Config, error) {
-	return FromValues(
-		os.Getenv("TYRAVEX_PANEL_URL"),
-		os.Getenv("TYRAVEX_NODE_ID"),
-		os.Getenv("TYRAVEX_NODE_TOKEN"),
-		os.Getenv("TYRAVEX_HEARTBEAT_INTERVAL_MS"),
-	)
+	return LoadFile("config.yml")
 }
 
-func FromValues(panelURL, nodeID, nodeToken, intervalValue string) (Config, error) {
+func LoadFile(path string) (Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Config{}, fmt.Errorf("read configuration: %w", err)
+	}
+
+	var raw fileConfig
+
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	decoder.KnownFields(true)
+
+	if err := decoder.Decode(&raw); err != nil {
+		return Config{}, fmt.Errorf("parse configuration: %w", err)
+	}
+
+	cfg, err := FromValues(
+		raw.Panel.URL,
+		raw.Node.ID,
+		raw.Node.Token,
+		raw.Heartbeat.Interval,
+	)
+	if err != nil {
+		return Config{}, err
+	}
+
+	cfg.DockerEnabled = raw.Docker.Enabled
+	cfg.DockerHost = strings.TrimSpace(raw.Docker.Host)
+
+	return cfg, nil
+}
+
+func FromValues(
+	panelURL string,
+	nodeID string,
+	nodeToken string,
+	intervalValue string,
+) (Config, error) {
 	panelURL = strings.TrimSpace(panelURL)
 	nodeID = strings.TrimSpace(nodeID)
 	nodeToken = strings.TrimSpace(nodeToken)
 
 	if panelURL == "" || nodeID == "" || nodeToken == "" {
 		return Config{}, errors.New(
-			"TYRAVEX_PANEL_URL, TYRAVEX_NODE_ID and TYRAVEX_NODE_TOKEN are required",
+			"panel.url, node.id and node.token are required",
 		)
 	}
 
 	parsed, err := url.Parse(panelURL)
 	if err != nil {
-		return Config{}, fmt.Errorf("invalid panel URL: %w", err)
+		return Config{}, errors.New("invalid panel URL")
 	}
 
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return Config{}, errors.New("panel URL must use HTTP or HTTPS")
-	}
-
-	if parsed.Host == "" || parsed.User != nil ||
-		parsed.RawQuery != "" || parsed.Fragment != "" {
+	if (parsed.Scheme != "http" && parsed.Scheme != "https") ||
+		parsed.Host == "" ||
+		parsed.User != nil ||
+		parsed.RawQuery != "" ||
+		parsed.Fragment != "" {
 		return Config{}, errors.New("invalid panel URL")
 	}
 
@@ -67,14 +121,18 @@ func FromValues(panelURL, nodeID, nodeToken, intervalValue string) (Config, erro
 	interval := 30 * time.Second
 
 	if strings.TrimSpace(intervalValue) != "" {
-		ms, err := strconv.Atoi(strings.TrimSpace(intervalValue))
-		if err != nil || ms < 5000 || ms > 60000 {
-			return Config{}, errors.New(
-				"TYRAVEX_HEARTBEAT_INTERVAL_MS must be between 5000 and 60000",
-			)
+		interval, err = time.ParseDuration(
+			strings.TrimSpace(intervalValue),
+		)
+		if err != nil {
+			return Config{}, errors.New("invalid heartbeat interval")
 		}
 
-		interval = time.Duration(ms) * time.Millisecond
+		if interval < 5*time.Second || interval > 60*time.Second {
+			return Config{}, errors.New(
+				"heartbeat interval must be between 5s and 60s",
+			)
+		}
 	}
 
 	parsed.Path = strings.TrimRight(parsed.Path, "/")
