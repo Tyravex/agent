@@ -228,6 +228,32 @@ func (s *Session) readLoop(ctx context.Context) {
 		}
 
 		switch envelope.Type {
+		case "command.execute":
+			command, err := DecodeServiceInstallCommand(envelope.Payload)
+			if err != nil {
+				s.shutdown(fmt.Errorf(
+					"invalid service installation command: %w",
+					err,
+				))
+				return
+			}
+
+			if command.Install.NodeID != s.welcome.NodeID {
+				s.shutdown(errors.New(
+					"service installation command targets a different node",
+				))
+				return
+			}
+
+			// Installation execution is not implemented yet.
+			// Do not acknowledge or execute this command.
+			// Closing the session prevents the Panel from
+			// treating this command as accepted.
+			s.shutdown(errors.New(
+				"service installation commands are not supported yet",
+			))
+			return
+
 		case "node.heartbeat.ack":
 			if err := validateHeartbeatACK(envelope.Payload); err != nil {
 				s.shutdown(err)
