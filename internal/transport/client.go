@@ -44,7 +44,8 @@ type Welcome struct {
 
 type Client struct {
 	config          config.Config
-	commandRegistry *commandIDRegistry
+	commandRegistry commandIDStore
+	lifecycle       clientLifecycle
 }
 
 type Session struct {
@@ -89,6 +90,10 @@ func (c *Client) ConnectWithExecutor(
 	ctx context.Context,
 	executor CommandExecutor,
 ) (*Session, error) {
+	if err := c.beginConnect(); err != nil {
+		return nil, err
+	}
+	defer c.finishConnect()
 	endpoint, err := websocketURL(c.config.PanelURL)
 	if err != nil {
 		return nil, err
@@ -142,6 +147,7 @@ func (c *Client) ConnectWithExecutor(
 			registry: c.commandRegistry,
 		},
 	}
+	c.trackSession(session)
 
 	go session.readLoop(sessionCtx)
 

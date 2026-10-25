@@ -27,7 +27,8 @@ type commandExecutionState struct {
 	seen     map[string]struct{}
 
 	// Shared across sessions created by the same Client.
-	registry *commandIDRegistry
+	// Implementations may keep IDs in memory or on disk.
+	registry commandIDStore
 
 	// Only one lifecycle command may execute at a time.
 	active bool
