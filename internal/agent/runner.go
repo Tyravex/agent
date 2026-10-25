@@ -42,7 +42,6 @@ func (r *Runner) Run(ctx context.Context) {
 			if ctx.Err() != nil {
 				return
 			}
-
 			log.Printf("Panel WebSocket connection failed: %v", err)
 		} else {
 			welcome := session.Welcome()
@@ -52,13 +51,17 @@ func (r *Runner) Run(ctx context.Context) {
 				welcome.HeartbeatIntervalSeconds,
 			)
 
+			// Lifecycle command execution is deliberately not enabled
+			// until Docker authorization and service ownership checks
+			// are connected to the executor.
+			//
+			// Do not attach an unrestricted Docker executor here.
+
 			connectedAt := time.Now()
 
 			r.runSession(ctx, session)
 			session.Close()
 
-			// Reset backoff only after a reasonably stable connection.
-			// A successful handshake alone must not reset the retry delay.
 			if time.Since(connectedAt) >= 30*time.Second {
 				reconnectDelay = reconnectInitialDelay
 			}
@@ -67,7 +70,10 @@ func (r *Runner) Run(ctx context.Context) {
 				return
 			}
 
-			log.Printf("Panel WebSocket disconnected: %v", session.Err())
+			log.Printf(
+				"Panel WebSocket disconnected: %v",
+				session.Err(),
+			)
 		}
 
 		if !waitForReconnect(ctx, reconnectDelay) {
@@ -92,7 +98,6 @@ func (r *Runner) runSession(
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	// Send the first heartbeat immediately after the handshake.
 	if !r.sendHeartbeat(ctx, session) {
 		return
 	}
@@ -101,10 +106,8 @@ func (r *Runner) runSession(
 		select {
 		case <-ctx.Done():
 			return
-
 		case <-session.Done():
 			return
-
 		case <-ticker.C:
 			if !r.sendHeartbeat(ctx, session) {
 				return

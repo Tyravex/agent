@@ -53,10 +53,15 @@ type Session struct {
 	cancel context.CancelFunc
 	done   chan struct{}
 
+	// Serializes all outgoing messages after the handshake.
+	writeMu sync.Mutex
+
 	mu      sync.Mutex
 	pending chan error
 	closed  bool
 	readErr error
+
+	commandState commandExecutionState
 }
 
 func NewClient(cfg config.Config) *Client {
@@ -107,6 +112,9 @@ func (c *Client) Connect(ctx context.Context) (*Session, error) {
 		welcome: welcome,
 		cancel:  sessionCancel,
 		done:    make(chan struct{}),
+		commandState: commandExecutionState{
+			seen: make(map[string]struct{}),
+		},
 	}
 
 	go session.readLoop(sessionCtx)
@@ -160,7 +168,9 @@ func (c *Client) handshake(
 	if welcome.NodeID != c.config.NodeID ||
 		welcome.HeartbeatIntervalSeconds < 5 ||
 		welcome.HeartbeatIntervalSeconds > 300 {
-		return Welcome{}, errors.New("invalid node.welcome payload values")
+		return Welcome{}, errors.New(
+			"invalid node.welcome payload values",
+		)
 	}
 
 	return welcome, nil
@@ -177,19 +187,14 @@ func (s *Session) Done() <-chan struct{} {
 func (s *Session) Err() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
 	return s.readErr
 }
 
-// Close is safe to call multiple times.
-// It must not be called from readLoop.
 func (s *Session) Close() {
 	s.shutdown(errSessionClosed)
 	<-s.done
 }
 
-// shutdown does not wait for readLoop, so it can also be
-// called from the read loop itself.
 func (s *Session) shutdown(err error) {
 	if err == nil {
 		err = errSessionClosed
@@ -206,7 +211,6 @@ func (s *Session) shutdown(err error) {
 
 	pending := s.pending
 	s.pending = nil
-
 	s.mu.Unlock()
 
 	if pending != nil {
@@ -223,36 +227,19 @@ func (s *Session) readLoop(ctx context.Context) {
 	for {
 		envelope, err := readEnvelope(ctx, s.conn)
 		if err != nil {
-			s.shutdown(fmt.Errorf("websocket read failed: %w", err))
+			s.shutdown(fmt.Errorf(
+				"websocket read failed: %w",
+				err,
+			))
 			return
 		}
 
 		switch envelope.Type {
 		case "command.execute":
-			command, err := DecodeServiceInstallCommand(envelope.Payload)
-			if err != nil {
-				s.shutdown(fmt.Errorf(
-					"invalid service installation command: %w",
-					err,
-				))
+			if err := s.handleCommand(ctx, envelope.Payload); err != nil {
+				s.shutdown(err)
 				return
 			}
-
-			if command.Install.NodeID != s.welcome.NodeID {
-				s.shutdown(errors.New(
-					"service installation command targets a different node",
-				))
-				return
-			}
-
-			// Installation execution is not implemented yet.
-			// Do not acknowledge or execute this command.
-			// Closing the session prevents the Panel from
-			// treating this command as accepted.
-			s.shutdown(errors.New(
-				"service installation commands are not supported yet",
-			))
-			return
 
 		case "node.heartbeat.ack":
 			if err := validateHeartbeatACK(envelope.Payload); err != nil {
@@ -275,10 +262,7 @@ func (s *Session) readLoop(ctx context.Context) {
 			}
 
 			s.pending = nil
-
-			// Accept the ACK before another goroutine can close the session.
 			pending <- nil
-
 			s.mu.Unlock()
 
 		default:
@@ -289,6 +273,33 @@ func (s *Session) readLoop(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (s *Session) sendEnvelope(
+	ctx context.Context,
+	messageType string,
+	payload any,
+) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	s.mu.Lock()
+	closed := s.closed
+	readErr := s.readErr
+	s.mu.Unlock()
+
+	if closed {
+		if readErr != nil {
+			return readErr
+		}
+		return errSessionClosed
+	}
+
+	return writeEnvelope(ctx, s.conn, messageType, payload)
 }
 
 func writeEnvelope(
@@ -337,7 +348,10 @@ func readEnvelope(
 
 	var envelope Envelope
 	if err := decodeStrict(data, &envelope); err != nil {
-		return Envelope{}, fmt.Errorf("invalid envelope JSON: %w", err)
+		return Envelope{}, fmt.Errorf(
+			"invalid envelope JSON: %w",
+			err,
+		)
 	}
 
 	if envelope.Protocol != protocolVersion ||
@@ -350,11 +364,15 @@ func readEnvelope(
 	var payload map[string]json.RawMessage
 	if err := json.Unmarshal(envelope.Payload, &payload); err != nil ||
 		payload == nil {
-		return Envelope{}, errors.New("protocol payload must be an object")
+		return Envelope{}, errors.New(
+			"protocol payload must be an object",
+		)
 	}
 
 	if !validTimestamp(envelope.Timestamp) {
-		return Envelope{}, errors.New("invalid protocol timestamp")
+		return Envelope{}, errors.New(
+			"invalid protocol timestamp",
+		)
 	}
 
 	return envelope, nil
