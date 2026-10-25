@@ -43,7 +43,8 @@ type Welcome struct {
 }
 
 type Client struct {
-	config config.Config
+	config          config.Config
+	commandRegistry *commandIDRegistry
 }
 
 type Session struct {
@@ -65,18 +66,25 @@ type Session struct {
 }
 
 func NewClient(cfg config.Config) *Client {
-	return &Client{config: cfg}
+	return &Client{
+		config:          cfg,
+		commandRegistry: newCommandIDRegistry(),
+	}
 }
 
-// Connect opens a session without lifecycle command execution.
+// Connect creates a session without a command executor.
+//
+// Lifecycle commands remain disabled unless an executor
+// is explicitly configured.
 func (c *Client) Connect(ctx context.Context) (*Session, error) {
 	return c.ConnectWithExecutor(ctx, nil)
 }
 
-// ConnectWithExecutor installs the executor before the read loop starts.
+// ConnectWithExecutor installs the executor before the
+// WebSocket read loop begins.
 //
-// A nil executor preserves the original fail-closed behavior:
-// lifecycle commands are not acknowledged or executed.
+// Sessions created by the same Client share command ID
+// history across reconnects.
 func (c *Client) ConnectWithExecutor(
 	ctx context.Context,
 	executor CommandExecutor,
@@ -106,7 +114,11 @@ func (c *Client) ConnectWithExecutor(
 				err,
 			)
 		}
-		return nil, fmt.Errorf("websocket connection failed: %w", err)
+
+		return nil, fmt.Errorf(
+			"websocket connection failed: %w",
+			err,
+		)
 	}
 
 	conn.SetReadLimit(maxMessageBytes)
@@ -127,6 +139,7 @@ func (c *Client) ConnectWithExecutor(
 		commandState: commandExecutionState{
 			executor: executor,
 			seen:     make(map[string]struct{}),
+			registry: c.commandRegistry,
 		},
 	}
 
@@ -155,12 +168,18 @@ func (c *Client) handshake(
 		Capabilities: []string{},
 	})
 	if err != nil {
-		return Welcome{}, fmt.Errorf("send node.hello: %w", err)
+		return Welcome{}, fmt.Errorf(
+			"send node.hello: %w",
+			err,
+		)
 	}
 
 	envelope, err := readEnvelope(ctx, conn)
 	if err != nil {
-		return Welcome{}, fmt.Errorf("receive node.welcome: %w", err)
+		return Welcome{}, fmt.Errorf(
+			"receive node.welcome: %w",
+			err,
+		)
 	}
 
 	if envelope.Type != "node.welcome" {
@@ -200,6 +219,7 @@ func (s *Session) Done() <-chan struct{} {
 func (s *Session) Err() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	return s.readErr
 }
 
@@ -214,6 +234,7 @@ func (s *Session) shutdown(err error) {
 	}
 
 	s.mu.Lock()
+
 	if s.closed {
 		s.mu.Unlock()
 		return
@@ -224,6 +245,7 @@ func (s *Session) shutdown(err error) {
 
 	pending := s.pending
 	s.pending = nil
+
 	s.mu.Unlock()
 
 	if pending != nil {
@@ -249,13 +271,18 @@ func (s *Session) readLoop(ctx context.Context) {
 
 		switch envelope.Type {
 		case "command.execute":
-			if err := s.handleCommand(ctx, envelope.Payload); err != nil {
+			if err := s.handleCommand(
+				ctx,
+				envelope.Payload,
+			); err != nil {
 				s.shutdown(err)
 				return
 			}
 
 		case "node.heartbeat.ack":
-			if err := validateHeartbeatACK(envelope.Payload); err != nil {
+			if err := validateHeartbeatACK(
+				envelope.Payload,
+			); err != nil {
 				s.shutdown(err)
 				return
 			}
@@ -270,12 +297,15 @@ func (s *Session) readLoop(ctx context.Context) {
 			pending := s.pending
 			if pending == nil {
 				s.mu.Unlock()
-				s.shutdown(errors.New("unexpected heartbeat ACK"))
+				s.shutdown(errors.New(
+					"unexpected heartbeat ACK",
+				))
 				return
 			}
 
 			s.pending = nil
 			pending <- nil
+
 			s.mu.Unlock()
 
 		default:
@@ -309,10 +339,16 @@ func (s *Session) sendEnvelope(
 		if readErr != nil {
 			return readErr
 		}
+
 		return errSessionClosed
 	}
 
-	return writeEnvelope(ctx, s.conn, messageType, payload)
+	return writeEnvelope(
+		ctx,
+		s.conn,
+		messageType,
+		payload,
+	)
 }
 
 func writeEnvelope(
@@ -333,17 +369,26 @@ func writeEnvelope(
 		Timestamp string `json:"timestamp"`
 		Payload   any    `json:"payload"`
 	}{
-		Protocol:  protocolVersion,
-		ID:        id,
-		Type:      messageType,
-		Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
-		Payload:   payload,
+		Protocol: protocolVersion,
+		ID:       id,
+		Type:     messageType,
+		Timestamp: time.Now().UTC().Format(
+			time.RFC3339Nano,
+		),
+		Payload: payload,
 	})
 	if err != nil {
-		return fmt.Errorf("encode message: %w", err)
+		return fmt.Errorf(
+			"encode message: %w",
+			err,
+		)
 	}
 
-	return conn.Write(ctx, websocket.MessageText, data)
+	return conn.Write(
+		ctx,
+		websocket.MessageText,
+		data,
+	)
 }
 
 func readEnvelope(
@@ -356,7 +401,9 @@ func readEnvelope(
 	}
 
 	if messageType != websocket.MessageText {
-		return Envelope{}, errors.New("binary protocol message")
+		return Envelope{}, errors.New(
+			"binary protocol message",
+		)
 	}
 
 	var envelope Envelope
@@ -371,12 +418,16 @@ func readEnvelope(
 		len(envelope.ID) < 1 ||
 		len(envelope.ID) > 128 ||
 		len(envelope.Type) == 0 {
-		return Envelope{}, errors.New("invalid protocol envelope")
+		return Envelope{}, errors.New(
+			"invalid protocol envelope",
+		)
 	}
 
 	var payload map[string]json.RawMessage
-	if err := json.Unmarshal(envelope.Payload, &payload); err != nil ||
-		payload == nil {
+	if err := json.Unmarshal(
+		envelope.Payload,
+		&payload,
+	); err != nil || payload == nil {
 		return Envelope{}, errors.New(
 			"protocol payload must be an object",
 		)
@@ -400,6 +451,7 @@ func validTimestamp(value string) bool {
 		"2006-01-02T15:04:05.999999999Z",
 		value,
 	)
+
 	return err == nil
 }
 
@@ -412,10 +464,14 @@ func decodeStrict(data []byte, target any) error {
 	}
 
 	var extra any
-	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+	if err := decoder.Decode(&extra); !errors.Is(
+		err,
+		io.EOF,
+	) {
 		if err == nil {
 			return errors.New("multiple JSON values")
 		}
+
 		return err
 	}
 
@@ -425,33 +481,50 @@ func decodeStrict(data []byte, target any) error {
 func websocketURL(panelURL string) (string, error) {
 	parsed, err := url.Parse(panelURL)
 	if err != nil {
-		return "", fmt.Errorf("invalid panel URL: %w", err)
+		return "", fmt.Errorf(
+			"invalid panel URL: %w",
+			err,
+		)
 	}
 
 	switch parsed.Scheme {
 	case "http":
 		parsed.Scheme = "ws"
+
 	case "https":
 		parsed.Scheme = "wss"
+
 	default:
-		return "", errors.New("panel URL must use http or https")
+		return "", errors.New(
+			"panel URL must use http or https",
+		)
 	}
 
 	if parsed.Host == "" ||
 		parsed.User != nil ||
 		parsed.RawQuery != "" ||
 		parsed.Fragment != "" {
-		return "", errors.New("invalid panel URL")
+		return "", errors.New(
+			"invalid panel URL",
+		)
 	}
 
-	parsed.Path = strings.TrimRight(parsed.Path, "/") + "/agent/v1/ws"
+	parsed.Path = strings.TrimRight(
+		parsed.Path,
+		"/",
+	) + "/agent/v1/ws"
+
 	return parsed.String(), nil
 }
 
 func newMessageID() (string, error) {
 	var data [16]byte
+
 	if _, err := rand.Read(data[:]); err != nil {
-		return "", fmt.Errorf("generate message ID: %w", err)
+		return "", fmt.Errorf(
+			"generate message ID: %w",
+			err,
+		)
 	}
 
 	return hex.EncodeToString(data[:]), nil
