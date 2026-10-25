@@ -68,7 +68,19 @@ func NewClient(cfg config.Config) *Client {
 	return &Client{config: cfg}
 }
 
+// Connect opens a session without lifecycle command execution.
 func (c *Client) Connect(ctx context.Context) (*Session, error) {
+	return c.ConnectWithExecutor(ctx, nil)
+}
+
+// ConnectWithExecutor installs the executor before the read loop starts.
+//
+// A nil executor preserves the original fail-closed behavior:
+// lifecycle commands are not acknowledged or executed.
+func (c *Client) ConnectWithExecutor(
+	ctx context.Context,
+	executor CommandExecutor,
+) (*Session, error) {
 	endpoint, err := websocketURL(c.config.PanelURL)
 	if err != nil {
 		return nil, err
@@ -113,7 +125,8 @@ func (c *Client) Connect(ctx context.Context) (*Session, error) {
 		cancel:  sessionCancel,
 		done:    make(chan struct{}),
 		commandState: commandExecutionState{
-			seen: make(map[string]struct{}),
+			executor: executor,
+			seen:     make(map[string]struct{}),
 		},
 	}
 

@@ -25,12 +25,16 @@ type commandExecutionState struct {
 	mu       sync.Mutex
 	executor CommandExecutor
 	seen     map[string]struct{}
+
+	// Only one lifecycle command may execute at a time.
+	active bool
+	done   chan struct{}
 }
 
-// SetCommandExecutor configures lifecycle execution for a session.
+// SetCommandExecutor is retained for compatibility.
 //
-// It must be called before commands are received. The executor
-// cannot be replaced after command processing has started.
+// Prefer Client.ConnectWithExecutor: it installs the executor
+// before the WebSocket read loop starts.
 func (s *Session) SetCommandExecutor(executor CommandExecutor) error {
 	if executor == nil {
 		return ErrCommandExecutorUnavailable
@@ -67,12 +71,8 @@ func (s *Session) handleCommand(
 		return fmt.Errorf("invalid command operation: %w", err)
 	}
 
-	// Installation-shaped commands must always be validated by
-	// the installation decoder, even when the operation is invalid.
-	//
-	// This preserves strict rejection of malformed installation
-	// requests and prevents them from being interpreted as
-	// lifecycle commands.
+	// Installation-shaped commands must always go through
+	// the installation decoder, including invalid operations.
 	isInstallation := raw.Operation == serviceInstallOperation
 
 	if !isInstallation && len(raw.Parameters) > 0 {
@@ -109,8 +109,8 @@ func (s *Session) handleCommand(
 			)
 		}
 
-		// Installation execution is not implemented.
-		// Never acknowledge an unsupported installation.
+		// Installation remains unsupported.
+		// Never acknowledge or execute it.
 		return errors.New(
 			"service installation commands are not supported yet",
 		)
@@ -138,20 +138,34 @@ func (s *Session) handleCommand(
 		return errors.New("command history limit reached")
 	}
 
-	s.commandState.seen[command.CommandID] = struct{}{}
 	executor := s.commandState.executor
-
-	s.commandState.mu.Unlock()
-
 	if executor == nil {
+		s.commandState.mu.Unlock()
 		return ErrCommandExecutorUnavailable
 	}
+
+	// Remember rejected-busy commands as well, so a repeated
+	// command ID cannot acquire a different meaning in this session.
+	s.commandState.seen[command.CommandID] = struct{}{}
+
+	busy := s.commandState.active
+
+	var executionDone chan struct{}
+	if !busy {
+		executionDone = make(chan struct{})
+		s.commandState.active = true
+		s.commandState.done = executionDone
+	}
+
+	s.commandState.mu.Unlock()
 
 	accepted := CommandAccepted{
 		CommandID: command.CommandID,
 	}
-
 	if err := accepted.Validate(); err != nil {
+		if !busy {
+			s.finishCommand(executionDone)
+		}
 		return err
 	}
 
@@ -160,10 +174,39 @@ func (s *Session) handleCommand(
 		"command.accepted",
 		accepted,
 	); err != nil {
+		if !busy {
+			s.finishCommand(executionDone)
+		}
 		return fmt.Errorf("send command.accepted: %w", err)
 	}
 
-	go s.executeCommand(ctx, executor, dispatchCommand)
+	if busy {
+		result, err := NewFailedCommandResult(
+			command.CommandID,
+			"COMMAND_BUSY",
+			"Another service operation is in progress",
+		)
+		if err != nil {
+			return err
+		}
+
+		if err := s.sendEnvelope(
+			ctx,
+			"command.result",
+			result,
+		); err != nil {
+			return fmt.Errorf("send busy command.result: %w", err)
+		}
+
+		return nil
+	}
+
+	go s.executeCommand(
+		ctx,
+		executor,
+		dispatchCommand,
+		executionDone,
+	)
 
 	return nil
 }
@@ -172,7 +215,10 @@ func (s *Session) executeCommand(
 	ctx context.Context,
 	executor CommandExecutor,
 	command commands.Command,
+	done chan struct{},
 ) {
+	defer s.finishCommand(done)
+
 	err := executor.Execute(ctx, command)
 
 	var result CommandResult
@@ -187,6 +233,8 @@ func (s *Session) executeCommand(
 		result, _ = NewSuccessfulCommandResult(command.ID)
 	}
 
+	// A disconnected session must not attempt to publish
+	// a final result over the old WebSocket.
 	if ctx.Err() != nil {
 		return
 	}
@@ -200,5 +248,42 @@ func (s *Session) executeCommand(
 			"send command.result: %w",
 			err,
 		))
+	}
+}
+
+func (s *Session) finishCommand(done chan struct{}) {
+	s.commandState.mu.Lock()
+	defer s.commandState.mu.Unlock()
+
+	if s.commandState.done != done {
+		return
+	}
+
+	s.commandState.active = false
+	s.commandState.done = nil
+	close(done)
+}
+
+// WaitCommands waits for the currently active command to finish.
+//
+// It does not cancel the command. Close() or session context
+// cancellation must be used separately.
+//
+// The caller can supply a deadline to avoid waiting forever
+// for an executor that ignores context cancellation.
+func (s *Session) WaitCommands(ctx context.Context) error {
+	s.commandState.mu.Lock()
+	done := s.commandState.done
+	s.commandState.mu.Unlock()
+
+	if done == nil {
+		return nil
+	}
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
