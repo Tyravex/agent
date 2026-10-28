@@ -53,8 +53,13 @@ type InstallExecutor interface {
 }
 
 type Dispatcher struct {
-	executor  Executor
-	installer InstallExecutor
+	executor   Executor
+	installer  InstallExecutor
+	authorizer *ServiceAuthorizer
+
+	// The authorized constructor must fail closed even
+	// when the caller passes a nil authorizer.
+	requireAuthorization bool
 }
 
 func NewDispatcher(
@@ -64,6 +69,24 @@ func NewDispatcher(
 	return &Dispatcher{
 		executor:  executor,
 		installer: installer,
+	}
+}
+
+// NewAuthorizedDispatcher creates a lifecycle-only dispatcher.
+//
+// It never enables service.install. Every supported operation
+// must pass service authorization before reaching the executor.
+//
+// A nil authorizer is allowed at construction time but causes
+// every execution attempt to fail closed.
+func NewAuthorizedDispatcher(
+	executor Executor,
+	authorizer *ServiceAuthorizer,
+) *Dispatcher {
+	return &Dispatcher{
+		executor:             executor,
+		authorizer:           authorizer,
+		requireAuthorization: true,
 	}
 }
 
@@ -77,6 +100,28 @@ func (d *Dispatcher) Execute(
 
 	if err := Validate(command); err != nil {
 		return err
+	}
+
+	if d == nil {
+		return ErrExecutorUnavailable
+	}
+
+	if d.requireAuthorization {
+		if d.authorizer == nil {
+			return ErrAuthorizationUnavailable
+		}
+
+		if err := d.authorizer.Authorize(
+			ctx,
+			command,
+		); err != nil {
+			return err
+		}
+
+		// Check cancellation again after the ownership lookup.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 	}
 
 	switch command.Operation {
