@@ -149,8 +149,7 @@ func OpenPersistentOwnershipStore(
 	memory := NewMemoryOwnershipStore()
 
 	// Restore only the revision, never assignments.
-	memory.snapshotRevision = revision
-	memory.snapshotApplied = applied
+	memory.RestoreRevision(revision, applied)
 
 	store := &PersistentOwnershipStore{
 		nodeID:      nodeID,
@@ -303,11 +302,10 @@ func (s *PersistentOwnershipStore) ApplySnapshot(
 
 	// Publish only after a successful durable write.
 	// No lease can run while s.mu is held.
-	s.memory.mu.Lock()
-	s.memory.assignments = replacement
-	s.memory.snapshotRevision = snapshot.Revision
-	s.memory.snapshotApplied = true
-	s.memory.mu.Unlock()
+	s.memory.PublishPersistedSnapshot(
+		snapshot.Revision,
+		replacement,
+	)
 
 	return nil
 }

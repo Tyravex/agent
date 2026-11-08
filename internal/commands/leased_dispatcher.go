@@ -2,15 +2,13 @@ package commands
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/Tyravex/agent/internal/ownership"
 )
 
-var ErrLeaseUnavailable = errors.New(
-	"service ownership lease unavailable",
-)
+// ErrLeaseUnavailable remains available to existing callers.
+var ErrLeaseUnavailable = ownership.ErrLeaseUnavailable
 
 // ServiceLeaseStore executes a callback while the trusted
 // ownership assignment remains protected from changes.

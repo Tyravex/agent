@@ -2,19 +2,15 @@ package commands
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/Tyravex/agent/internal/ownership"
 )
 
+// Compatibility aliases preserve error identity for existing callers.
 var (
-	ErrAuthorizationUnavailable = errors.New(
-		"service authorization unavailable",
-	)
-	ErrServiceNotAuthorized = errors.New(
-		"service is not authorized for this node",
-	)
+	ErrAuthorizationUnavailable = ownership.ErrAuthorizationUnavailable
+	ErrServiceNotAuthorized     = ownership.ErrServiceNotAuthorized
 )
 
 // ServiceOwnership is retained as a compatibility alias
