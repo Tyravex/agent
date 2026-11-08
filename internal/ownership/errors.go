@@ -30,3 +30,15 @@ var ErrOwnershipNotFound = errors.New(
 var ErrOwnershipStoreCorrupt = errors.New(
 	"persistent ownership store is corrupt",
 )
+
+// ErrOwnershipJournalMissing indicates that an initialized
+// ownership journal no longer exists.
+var ErrOwnershipJournalMissing = errors.New(
+	"initialized ownership revision journal is missing",
+)
+
+// ErrOwnershipInitializationCorrupt indicates that the
+// ownership journal initialization marker is invalid.
+var ErrOwnershipInitializationCorrupt = errors.New(
+	"ownership journal initialization marker is invalid",
+)
