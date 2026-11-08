@@ -10,7 +10,10 @@ import (
 // It does not connect to Docker or the Panel.
 // It must be called before Runner.Run(), not concurrently with it.
 func (r *Runner) configureLocalOwnershipExecution() error {
-	if r == nil || r.ownership != nil || r.localDockerHost != "" {
+	if r == nil ||
+		r.ownership != nil ||
+		r.localDockerHost != "" ||
+		r.localOwnershipIdentity != nil {
 		return ErrRunnerOwnershipExecutionUnavailable
 	}
 
@@ -32,7 +35,11 @@ func (r *Runner) configureLocalOwnershipExecution() error {
 		return err
 	}
 
-	// Record the endpoint only after ownership initialization succeeds.
+	identity := ownershipIdentityFromConfig(r.config)
+
+	// Publish local activation state only after successful initialization.
 	r.localDockerHost = host
+	r.localOwnershipIdentity = &identity
+
 	return nil
 }

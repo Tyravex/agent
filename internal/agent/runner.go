@@ -16,11 +16,12 @@ const (
 )
 
 type Runner struct {
-	config          config.Config
-	transport       *transport.Client
-	ownership       *transport.OwnershipExecution
-	localDockerHost string
-	startedAt       time.Time
+	config                 config.Config
+	transport              *transport.Client
+	ownership              *transport.OwnershipExecution
+	localDockerHost        string
+	localOwnershipIdentity *ownershipIdentity
+	startedAt              time.Time
 }
 
 func NewRunner(cfg config.Config) *Runner {

@@ -6,7 +6,8 @@ import (
 )
 
 // localOwnershipExecution returns an ownership executor only when
-// the Runner was configured with a supported local Docker endpoint.
+// the Runner was configured with a supported local Docker endpoint
+// and its authorization configuration has not changed.
 //
 // It does not connect to the Panel or Docker Engine.
 // It must not be called concurrently with Runner configuration.
@@ -14,8 +15,14 @@ func (r *Runner) localOwnershipExecution() (*transport.OwnershipExecution, error
 	if r == nil ||
 		r.ownership == nil ||
 		r.localDockerHost == "" ||
+		r.localOwnershipIdentity == nil ||
 		!r.config.DockerEnabled ||
 		r.config.DockerHost != "" {
+		return nil, ErrRunnerOwnershipExecutionUnavailable
+	}
+
+	currentIdentity := ownershipIdentityFromConfig(r.config)
+	if currentIdentity != *r.localOwnershipIdentity {
 		return nil, ErrRunnerOwnershipExecutionUnavailable
 	}
 
