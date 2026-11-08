@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +18,7 @@ import (
 type Runtime struct {
 	binary  string
 	timeout time.Duration
+	host    string
 }
 
 type ServerSpec struct {
@@ -66,6 +69,27 @@ func NewRuntime() *Runtime {
 	}
 }
 
+// NewRuntimeWithHost creates a Docker CLI runtime bound to a
+// supported local Docker Engine endpoint.
+func NewRuntimeWithHost(host string) (*Runtime, error) {
+	switch runtime.GOOS {
+	case "windows":
+		if host != "npipe:////./pipe/docker_engine" {
+			return nil, errors.New("unsupported Docker Engine endpoint")
+		}
+	case "linux":
+		if host != "unix:///var/run/docker.sock" {
+			return nil, errors.New("unsupported Docker Engine endpoint")
+		}
+	default:
+		return nil, errors.New("unsupported operating system")
+	}
+
+	result := NewRuntime()
+	result.host = host
+	return result, nil
+}
+
 func (r *Runtime) run(ctx context.Context, args ...string) (string, error) {
 	timeout := r.timeout
 	if timeout <= 0 {
@@ -75,12 +99,9 @@ func (r *Runtime) run(ctx context.Context, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	binary := r.binary
-	if binary == "" {
-		binary = "docker"
-	}
+	command := r.newCommand(ctx, args...)
 
-	out, err := exec.CommandContext(ctx, binary, args...).CombinedOutput()
+	out, err := command.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf(
 			"docker %s: %w: %s",
@@ -91,6 +112,28 @@ func (r *Runtime) run(ctx context.Context, args ...string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(out)), nil
+}
+
+func (r *Runtime) newCommand(
+	ctx context.Context,
+	args ...string,
+) *exec.Cmd {
+	binary := r.binary
+	if binary == "" {
+		binary = "docker"
+	}
+
+	if r.host != "" {
+		args = append([]string{"--host", r.host}, args...)
+	}
+
+	command := exec.CommandContext(ctx, binary, args...)
+
+	if r.host != "" {
+		command.Env = filteredDockerEnvironment()
+	}
+
+	return command
 }
 
 func containerName(id string) string {
@@ -308,4 +351,21 @@ func (r *Runtime) Logs(
 		strconv.Itoa(lines),
 		containerName(id),
 	)
+}
+
+func filteredDockerEnvironment() []string {
+	inherited := os.Environ()
+	result := make([]string, 0, len(inherited))
+
+	for _, entry := range inherited {
+		key, _, _ := strings.Cut(entry, "=")
+
+		if strings.HasPrefix(strings.ToUpper(key), "DOCKER_") {
+			continue
+		}
+
+		result = append(result, entry)
+	}
+
+	return result
 }
