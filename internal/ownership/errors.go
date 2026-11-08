@@ -42,3 +42,9 @@ var ErrOwnershipJournalMissing = errors.New(
 var ErrOwnershipInitializationCorrupt = errors.New(
 	"ownership journal initialization marker is invalid",
 )
+
+// ErrOwnershipIntegrity indicates an ownership journal
+// integrity verification failure.
+var ErrOwnershipIntegrity = errors.New(
+	"ownership revision journal integrity failure",
+)
