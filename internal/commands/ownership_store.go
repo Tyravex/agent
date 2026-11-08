@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/Tyravex/agent/internal/ownership"
@@ -14,9 +13,7 @@ var (
 	ErrOwnershipNotFound = errors.New(
 		"service ownership not found",
 	)
-	ErrInvalidOwnership = errors.New(
-		"invalid service ownership",
-	)
+	ErrInvalidOwnership = ownership.ErrInvalidOwnership
 )
 
 // MemoryOwnershipStore is an in-memory implementation
@@ -153,29 +150,8 @@ func (s *MemoryOwnershipStore) Revoke(
 	return nil
 }
 
-func validateOwnership(
-	assignment ServiceOwnership,
-) error {
-	if !ownership.ValidServiceID(
-		assignment.ServiceID,
-	) {
-		return fmt.Errorf(
-			"%w: invalid service ID",
-			ErrInvalidOwnership,
-		)
-	}
-
-	if assignment.NodeID == "" ||
-		strings.TrimSpace(assignment.NodeID) != assignment.NodeID ||
-		len(assignment.NodeID) > 128 ||
-		strings.ContainsAny(assignment.NodeID, "\r\n\t") {
-		return fmt.Errorf(
-			"%w: invalid node ID",
-			ErrInvalidOwnership,
-		)
-	}
-
-	return nil
+func validateOwnership(assignment ServiceOwnership) error {
+	return ownership.ValidateAssignment(assignment)
 }
 
 var _ ServiceLeaseStore = (*MemoryOwnershipStore)(nil)
