@@ -104,6 +104,20 @@ func NewClient(cfg config.Config) *Client {
 	}
 }
 
+// NewClientWithHTTPClient creates a transport client with an
+// explicitly supplied HTTP client.
+//
+// A nil HTTP client preserves standard TLS verification.
+// Callers must not disable certificate verification.
+func NewClientWithHTTPClient(
+	cfg config.Config,
+	httpClient *http.Client,
+) *Client {
+	client := NewClient(cfg)
+	client.httpClient = httpClient
+	return client
+}
+
 // Connect creates a standard WebSocket session.
 //
 // No command executor or ownership synchronization is
