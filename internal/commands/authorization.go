@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+
+	"github.com/Tyravex/agent/internal/ownership"
 )
 
 var (
@@ -25,11 +27,7 @@ var authorizedServiceIDPattern = regexp.MustCompile(
 //
 // These values must originate from a trusted local store,
 // not directly from a WebSocket command payload.
-type ServiceOwnership struct {
-	ServiceID string
-	NodeID    string
-	Enabled   bool
-}
+type ServiceOwnership = ownership.ServiceOwnership
 
 // ServiceOwnershipStore reads trusted service assignments.
 //
