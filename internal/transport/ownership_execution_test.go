@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Tyravex/agent/internal/commands"
+	"github.com/Tyravex/agent/internal/command"
 )
 
 type ownershipExecutionTestRuntime struct{}

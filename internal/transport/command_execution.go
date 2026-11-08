@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Tyravex/agent/internal/commands"
+	"github.com/Tyravex/agent/internal/command"
 )
 
 const maxRememberedCommands = 4096

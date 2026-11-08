@@ -10,7 +10,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/Tyravex/agent/internal/commands"
+	"github.com/Tyravex/agent/internal/command"
 	"github.com/Tyravex/agent/internal/config"
 )
 

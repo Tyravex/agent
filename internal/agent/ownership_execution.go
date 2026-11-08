@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Tyravex/agent/internal/commands"
+	"github.com/Tyravex/agent/internal/command"
 	"github.com/Tyravex/agent/internal/config"
 	"github.com/Tyravex/agent/internal/transport"
 )
