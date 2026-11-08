@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/Tyravex/agent/internal/ownership"
 )
 
 var (
@@ -59,7 +61,7 @@ func (s *MemoryOwnershipStore) Lookup(
 		return ServiceOwnership{}, ErrAuthorizationUnavailable
 	}
 
-	if !authorizedServiceIDPattern.MatchString(serviceID) {
+	if !ownership.ValidServiceID(serviceID) {
 		return ServiceOwnership{}, fmt.Errorf(
 			"%w: invalid service ID",
 			ErrInvalidOwnership,
@@ -133,7 +135,7 @@ func (s *MemoryOwnershipStore) Revoke(
 		return ErrAuthorizationUnavailable
 	}
 
-	if !authorizedServiceIDPattern.MatchString(serviceID) {
+	if !ownership.ValidServiceID(serviceID) {
 		return fmt.Errorf(
 			"%w: invalid service ID",
 			ErrInvalidOwnership,
@@ -152,10 +154,10 @@ func (s *MemoryOwnershipStore) Revoke(
 }
 
 func validateOwnership(
-	ownership ServiceOwnership,
+	assignment ServiceOwnership,
 ) error {
-	if !authorizedServiceIDPattern.MatchString(
-		ownership.ServiceID,
+	if !ownership.ValidServiceID(
+		assignment.ServiceID,
 	) {
 		return fmt.Errorf(
 			"%w: invalid service ID",
@@ -163,10 +165,10 @@ func validateOwnership(
 		)
 	}
 
-	if ownership.NodeID == "" ||
-		strings.TrimSpace(ownership.NodeID) != ownership.NodeID ||
-		len(ownership.NodeID) > 128 ||
-		strings.ContainsAny(ownership.NodeID, "\r\n\t") {
+	if assignment.NodeID == "" ||
+		strings.TrimSpace(assignment.NodeID) != assignment.NodeID ||
+		len(assignment.NodeID) > 128 ||
+		strings.ContainsAny(assignment.NodeID, "\r\n\t") {
 		return fmt.Errorf(
 			"%w: invalid node ID",
 			ErrInvalidOwnership,
@@ -201,7 +203,7 @@ func (s *MemoryOwnershipStore) WithAuthorizedService(
 	}
 
 	if nodeID == "" ||
-		!authorizedServiceIDPattern.MatchString(serviceID) ||
+		!ownership.ValidServiceID(serviceID) ||
 		run == nil {
 		return ErrServiceNotAuthorized
 	}

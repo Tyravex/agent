@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Tyravex/agent/internal/ownership"
 	"io"
 	"time"
 )
@@ -464,7 +465,7 @@ func validateOwnershipSnapshotMessage(
 	)
 
 	for _, assignment := range message.Assignments {
-		if !authorizedServiceIDPattern.MatchString(
+		if !ownership.ValidServiceID(
 			assignment.ServiceID,
 		) {
 			return ErrInvalidOwnershipMessage

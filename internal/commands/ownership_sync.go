@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Tyravex/agent/internal/ownership"
 	"sync"
 	"time"
 )
@@ -424,7 +425,7 @@ func (m *OwnershipSyncManager) Lookup(
 		return ServiceOwnership{}, ErrOwnershipNotReady
 	}
 
-	if !authorizedServiceIDPattern.MatchString(serviceID) {
+	if !ownership.ValidServiceID(serviceID) {
 		return ServiceOwnership{}, fmt.Errorf(
 			"%w: invalid service ID",
 			ErrInvalidOwnership,
@@ -481,7 +482,7 @@ func (m *OwnershipSyncManager) WithAuthorizedService(
 		return ErrOwnershipNotReady
 	}
 
-	if !authorizedServiceIDPattern.MatchString(serviceID) {
+	if !ownership.ValidServiceID(serviceID) {
 		m.mu.RUnlock()
 		return ErrServiceNotAuthorized
 	}

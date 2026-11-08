@@ -65,7 +65,7 @@ func (d *LeasedDispatcher) Execute(
 		return ErrExecutorUnavailable
 	}
 
-	if !authorizedServiceIDPattern.MatchString(
+	if !ownership.ValidServiceID(
 		command.ServiceID,
 	) {
 		return ErrServiceNotAuthorized

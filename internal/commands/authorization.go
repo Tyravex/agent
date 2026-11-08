@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 
 	"github.com/Tyravex/agent/internal/ownership"
 )
@@ -18,21 +17,10 @@ var (
 	)
 )
 
-var authorizedServiceIDPattern = regexp.MustCompile(
-	`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$`,
-)
-
-// ServiceOwnership describes a trusted assignment of a
-// service to an Agent node.
-//
-// These values must originate from a trusted local store,
-// not directly from a WebSocket command payload.
+// ServiceOwnership is retained as a compatibility alias
+// while ownership is extracted from commands.
 type ServiceOwnership = ownership.ServiceOwnership
 
-// ServiceOwnershipStore reads trusted service assignments.
-//
-// A missing service must return an error. Implementations
-// must not create an assignment during Lookup.
 // ServiceOwnershipStore is retained as a compatibility
 // alias while ownership is extracted from commands.
 type ServiceOwnershipStore = ownership.ServiceOwnershipStore
@@ -72,9 +60,9 @@ func (a *ServiceAuthorizer) Authorize(
 		return err
 	}
 
-	// Installation needs a separate authorization path.
-	// A lifecycle assignment alone never grants permission
-	// to create or install a new service.
+	// Installation requires a separate authorization path.
+	// A lifecycle assignment never grants permission to
+	// create or install a new service.
 	switch command.Operation {
 	case ServiceStart, ServiceStop, ServiceRestart:
 		// Supported lifecycle operations.
@@ -87,16 +75,14 @@ func (a *ServiceAuthorizer) Authorize(
 		)
 	}
 
-	if !authorizedServiceIDPattern.MatchString(
-		command.ServiceID,
-	) {
+	if !ownership.ValidServiceID(command.ServiceID) {
 		return fmt.Errorf(
 			"%w: invalid service ID",
 			ErrServiceNotAuthorized,
 		)
 	}
 
-	ownership, err := a.store.Lookup(
+	assignment, err := a.store.Lookup(
 		ctx,
 		command.ServiceID,
 	)
@@ -116,9 +102,9 @@ func (a *ServiceAuthorizer) Authorize(
 		return err
 	}
 
-	if !ownership.Enabled ||
-		ownership.ServiceID != command.ServiceID ||
-		ownership.NodeID != a.nodeID {
+	if !assignment.Enabled ||
+		assignment.ServiceID != command.ServiceID ||
+		assignment.NodeID != a.nodeID {
 		return ErrServiceNotAuthorized
 	}
 
