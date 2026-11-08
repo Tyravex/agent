@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"github.com/Tyravex/agent/internal/transport/protocol"
+
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -20,7 +22,7 @@ type ServiceInstallCommand struct {
 func DecodeServiceInstallCommand(
 	data []byte,
 ) (ServiceInstallCommand, error) {
-	if err := rejectDuplicateJSONKeys(data); err != nil {
+	if err := protocol.RejectDuplicateJSONKeys(data); err != nil {
 		return ServiceInstallCommand{}, fmt.Errorf(
 			"invalid installation command JSON keys: %w",
 			err,

@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"github.com/Tyravex/agent/internal/transport/protocol"
+
 	"strings"
 	"testing"
 )
@@ -55,7 +57,7 @@ func TestRejectDuplicateJSONKeys(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := rejectDuplicateJSONKeys([]byte(tt.input))
+			err := protocol.RejectDuplicateJSONKeys([]byte(tt.input))
 
 			if tt.wantErr && err == nil {
 				t.Fatal("expected rejection")

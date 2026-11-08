@@ -1,4 +1,4 @@
-package transport
+package protocol
 
 import (
 	"bytes"
@@ -8,10 +8,10 @@ import (
 	"io"
 )
 
-// rejectDuplicateJSONKeys checks every JSON object recursively.
+// RejectDuplicateJSONKeys checks every JSON object recursively.
 // It rejects duplicate field names, including inside nested objects
 // and objects contained in arrays.
-func rejectDuplicateJSONKeys(data []byte) error {
+func RejectDuplicateJSONKeys(data []byte) error {
 	decoder := json.NewDecoder(bytes.NewReader(data))
 
 	if err := scanUniqueJSONValue(decoder); err != nil {

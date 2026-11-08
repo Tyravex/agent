@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"github.com/Tyravex/agent/internal/transport/protocol"
+
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -17,7 +19,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/Tyravex/agent/internal/command"
+	commands "github.com/Tyravex/agent/internal/command"
 	"github.com/Tyravex/agent/internal/config"
 	"github.com/Tyravex/agent/internal/version"
 )
@@ -634,7 +636,7 @@ func readEnvelope(
 
 	// Reject duplicate keys, including keys nested
 	// inside the payload.
-	if err := rejectDuplicateJSONKeys(data); err != nil {
+	if err := protocol.RejectDuplicateJSONKeys(data); err != nil {
 		return Envelope{}, fmt.Errorf(
 			"invalid envelope JSON: %w",
 			err,
