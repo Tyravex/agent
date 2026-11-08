@@ -33,12 +33,9 @@ type ServiceOwnership = ownership.ServiceOwnership
 //
 // A missing service must return an error. Implementations
 // must not create an assignment during Lookup.
-type ServiceOwnershipStore interface {
-	Lookup(
-		ctx context.Context,
-		serviceID string,
-	) (ServiceOwnership, error)
-}
+// ServiceOwnershipStore is retained as a compatibility
+// alias while ownership is extracted from commands.
+type ServiceOwnershipStore = ownership.ServiceOwnershipStore
 
 // ServiceAuthorizer checks whether a lifecycle command
 // may target a service assigned to this Agent node.
