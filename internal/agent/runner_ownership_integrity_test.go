@@ -161,3 +161,31 @@ func TestRunnerOwnershipActivationPreservesOriginalOwnership(t *testing.T) {
 		t.Fatal("activation returned a different ownership instance")
 	}
 }
+
+func TestRunnerOwnershipActivationRejectsForgedLocalEndpoint(t *testing.T) {
+	runner := NewRunner(activationTestConfig())
+
+	if err := runner.configureOwnershipExecution(
+		&ownershipRuntimeStub{},
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	host, err := docker.LocalEngineHost("")
+	if errors.Is(err, docker.ErrLocalDockerEngineUnavailable) {
+		t.Skip("unsupported operating system")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A valid-looking endpoint does not prove that the
+	// ownership runtime was created by the local factory.
+	runner.localDockerHost = host
+
+	if runner.localOwnershipIdentity != nil {
+		t.Fatal("manual runtime must not have local ownership identity")
+	}
+
+	requireActivationRejected(t, runner)
+}
