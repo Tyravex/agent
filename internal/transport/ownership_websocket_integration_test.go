@@ -18,9 +18,14 @@ import (
 const ownershipIntegrationSessionID = "session-0000000000000001"
 
 func ownershipIntegrationClient(server *httptest.Server) *Client {
-	client := NewClient(config.Config{PanelURL: server.URL, NodeID: "node-1", NodeToken: "test-token"})
-	client.httpClient = server.Client()
-	return client
+	return NewClientWithHTTPClient(
+		config.Config{
+			PanelURL:  server.URL,
+			NodeID:    "node-1",
+			NodeToken: "test-token",
+		},
+		server.Client(),
+	)
 }
 
 func ownershipIntegrationManager() *commands.OwnershipConnectionManager {
