@@ -48,3 +48,9 @@ var ErrOwnershipInitializationCorrupt = errors.New(
 var ErrOwnershipIntegrity = errors.New(
 	"ownership revision journal integrity failure",
 )
+
+// ErrOwnershipStoreLocked indicates that another process
+// already holds the exclusive ownership store lock.
+var ErrOwnershipStoreLocked = errors.New(
+	"persistent ownership store already locked",
+)

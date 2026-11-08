@@ -14,9 +14,7 @@ import (
 )
 
 var (
-	ErrOwnershipStoreLocked = errors.New(
-		"persistent ownership store already locked",
-	)
+	ErrOwnershipStoreLocked  = ownership.ErrOwnershipStoreLocked
 	ErrOwnershipStoreCorrupt = ownership.ErrOwnershipStoreCorrupt
 	ErrOwnershipStoreClosed  = errors.New(
 		"persistent ownership store is closed",
