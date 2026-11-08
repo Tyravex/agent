@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Tyravex/agent/internal/config"
-	"github.com/Tyravex/agent/internal/docker"
 	"github.com/Tyravex/agent/internal/transport"
 )
 
@@ -17,10 +16,11 @@ const (
 )
 
 type Runner struct {
-	config    config.Config
-	transport *transport.Client
-	ownership *transport.OwnershipExecution
-	startedAt time.Time
+	config          config.Config
+	transport       *transport.Client
+	ownership       *transport.OwnershipExecution
+	localDockerHost string
+	startedAt       time.Time
 }
 
 func NewRunner(cfg config.Config) *Runner {
@@ -162,7 +162,7 @@ func (r *Runner) dockerStatus(
 		return unavailable
 	}
 
-	client, err := docker.NewClientWithHost(r.config.DockerHost)
+	client, err := r.newDockerStatusClient()
 	if err != nil {
 		log.Printf("Docker client initialization failed: %v", err)
 		return unavailable

@@ -83,6 +83,12 @@ func (c *Client) Close() error {
 	return c.api.Close()
 }
 
+// DaemonHost reports the Docker endpoint selected for this client.
+// It does not contact Docker Engine.
+func (c *Client) DaemonHost() string {
+	return c.api.DaemonHost()
+}
+
 func (c *Client) Inspect(ctx context.Context) (Info, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()

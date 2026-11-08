@@ -10,13 +10,10 @@ import (
 // It does not connect to Docker or the Panel.
 // It must be called before Runner.Run(), not concurrently with it.
 func (r *Runner) configureLocalOwnershipExecution() error {
-	if r == nil || r.ownership != nil {
+	if r == nil || r.ownership != nil || r.localDockerHost != "" {
 		return ErrRunnerOwnershipExecutionUnavailable
 	}
 
-	// Fail closed before creating the runtime.
-	// The existing ownership factory performs the remaining
-	// authorization and Panel TLS checks.
 	if !r.config.DockerEnabled || r.config.DockerHost != "" {
 		return ErrRunnerOwnershipExecutionUnavailable
 	}
@@ -31,5 +28,11 @@ func (r *Runner) configureLocalOwnershipExecution() error {
 		return ErrRunnerOwnershipExecutionUnavailable
 	}
 
-	return r.configureOwnershipExecution(runtime)
+	if err := r.configureOwnershipExecution(runtime); err != nil {
+		return err
+	}
+
+	// Record the endpoint only after ownership initialization succeeds.
+	r.localDockerHost = host
+	return nil
 }
