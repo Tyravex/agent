@@ -19,5 +19,9 @@ func (r *Runner) connectWithLocalOwnership(
 		return nil, err
 	}
 
+	if !r.transport.MatchesConnectionConfig(r.config) {
+		return nil, ErrRunnerOwnershipExecutionUnavailable
+	}
+
 	return r.transport.ConnectWithOwnershipExecution(ctx, execution)
 }

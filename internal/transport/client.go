@@ -118,6 +118,17 @@ func NewClientWithHTTPClient(
 	return client
 }
 
+// MatchesConnectionConfig reports whether the client uses the
+// same Panel endpoint and node credentials as the supplied config.
+//
+// It does not connect to the Panel or expose credentials.
+func (c *Client) MatchesConnectionConfig(cfg config.Config) bool {
+	return c != nil &&
+		c.config.PanelURL == cfg.PanelURL &&
+		c.config.NodeID == cfg.NodeID &&
+		c.config.NodeToken == cfg.NodeToken
+}
+
 // Connect creates a standard WebSocket session.
 //
 // No command executor or ownership synchronization is
