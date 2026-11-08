@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/Tyravex/agent/internal/config"
-	"github.com/Tyravex/agent/internal/docker"
+	"github.com/Tyravex/agent/internal/runtime/docker"
 )
 
 func activationTestConfig() config.Config {

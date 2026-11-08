@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/Tyravex/agent/internal/docker"
+	"github.com/Tyravex/agent/internal/runtime/docker"
 )
 
 // configureLocalOwnershipExecution prepares a Docker runtime

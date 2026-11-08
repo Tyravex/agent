@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Tyravex/agent/internal/docker"
+	"github.com/Tyravex/agent/internal/runtime/docker"
 	"github.com/Tyravex/agent/internal/transport"
 	"github.com/coder/websocket"
 )

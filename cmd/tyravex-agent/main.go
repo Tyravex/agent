@@ -14,7 +14,7 @@ import (
 
 	"github.com/Tyravex/agent/internal/agent"
 	"github.com/Tyravex/agent/internal/config"
-	"github.com/Tyravex/agent/internal/docker"
+	"github.com/Tyravex/agent/internal/runtime/docker"
 	api "github.com/Tyravex/agent/internal/transport/httpapi"
 	"github.com/Tyravex/agent/internal/version"
 )

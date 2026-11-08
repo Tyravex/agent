@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Tyravex/agent/internal/docker"
+	"github.com/Tyravex/agent/internal/runtime/docker"
 )
 
 var ErrDockerRuntimeUnavailable = errors.New(

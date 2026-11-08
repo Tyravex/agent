@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Tyravex/agent/internal/config"
-	"github.com/Tyravex/agent/internal/docker"
+	"github.com/Tyravex/agent/internal/runtime/docker"
 	"github.com/Tyravex/agent/internal/version"
 )
 

@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/Tyravex/agent/internal/docker"
+	"github.com/Tyravex/agent/internal/runtime/docker"
 )
 
 // newDockerStatusClient selects the SDK client used by heartbeats.
