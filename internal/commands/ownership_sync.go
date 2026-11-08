@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Tyravex/agent/internal/ownership"
 	"sync"
 	"time"
+
+	"github.com/Tyravex/agent/internal/ownership"
 )
 
 var (
@@ -99,6 +100,15 @@ func NewOwnershipSyncManager(
 		assignments: make(map[string]ServiceOwnership),
 		now:         time.Now,
 	}
+}
+
+// NodeID returns the node identity bound to this manager.
+// It does not expose or modify authorization state.
+func (m *OwnershipSyncManager) NodeID() string {
+	if m == nil {
+		return ""
+	}
+	return m.nodeID
 }
 
 // BeginSession starts a legacy session without a connection
