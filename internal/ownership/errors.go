@@ -54,3 +54,11 @@ var ErrOwnershipIntegrity = errors.New(
 var ErrOwnershipStoreLocked = errors.New(
 	"persistent ownership store already locked",
 )
+
+var ErrOwnershipStoreClosed = errors.New(
+	"persistent ownership store is closed",
+)
+
+var ErrOwnershipStorePoisoned = errors.New(
+	"persistent ownership store requires recovery",
+)

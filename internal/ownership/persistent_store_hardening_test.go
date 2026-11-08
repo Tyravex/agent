@@ -1,4 +1,4 @@
-package commands
+package ownership
 
 import (
 	"context"
@@ -426,11 +426,11 @@ func TestPersistentOwnershipHardeningCorruptPartialWrite(
 	}
 	defer lockFile.Close()
 
-	if err := lockOwnershipFile(lockFile); err != nil {
+	if err := LockFile(lockFile); err != nil {
 		t.Fatalf("lock not released after failed open: %v", err)
 	}
 
-	if err := unlockOwnershipFile(lockFile); err != nil {
+	if err := UnlockFile(lockFile); err != nil {
 		t.Fatalf("unlock: %v", err)
 	}
 }
