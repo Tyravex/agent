@@ -18,6 +18,7 @@ var ErrOwnershipExecutionUnavailable = errors.New(
 //
 // Keep this object alive across WebSocket reconnects.
 type OwnershipExecution struct {
+	nodeID      string
 	connections *commands.OwnershipConnectionManager
 	dispatcher  *commands.LeasedDispatcher
 }
@@ -38,6 +39,7 @@ func NewOwnershipExecution(
 	}
 
 	return &OwnershipExecution{
+		nodeID: nodeID,
 		connections: commands.NewOwnershipConnectionManager(
 			syncManager,
 		),
@@ -57,7 +59,8 @@ func (c *Client) ConnectWithOwnershipExecution(
 ) (*Session, error) {
 	if execution == nil ||
 		execution.connections == nil ||
-		execution.dispatcher == nil {
+		execution.dispatcher == nil ||
+		execution.nodeID == "" {
 		return nil, ErrOwnershipExecutionUnavailable
 	}
 
@@ -72,7 +75,11 @@ func (c *Client) connectWithOwnershipExecution(
 	ctx context.Context,
 	execution *OwnershipExecution,
 ) (*Session, error) {
-	if c == nil {
+	if c == nil ||
+		execution == nil ||
+		execution.connections == nil ||
+		execution.dispatcher == nil ||
+		execution.nodeID != c.config.NodeID {
 		return nil, ErrOwnershipExecutionUnavailable
 	}
 

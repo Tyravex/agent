@@ -148,6 +148,7 @@ func TestConnectWithOwnershipExecutionRequiresTLS(t *testing.T) {
 
 	client := &Client{}
 	client.config.PanelURL = "http://localhost:8080"
+	client.config.NodeID = "node-1"
 
 	session, err := client.ConnectWithOwnershipExecution(
 		context.Background(),
@@ -177,5 +178,34 @@ func TestNewOwnershipExecutionRejectsNodeMismatch(t *testing.T) {
 
 	if execution != nil {
 		t.Fatal("expected nil execution")
+	}
+}
+
+func TestConnectWithOwnershipExecutionRejectsClientNodeMismatch(t *testing.T) {
+	syncManager := commands.NewOwnershipSyncManager("node-1")
+
+	execution, err := NewOwnershipExecution(
+		"node-1",
+		syncManager,
+		&ownershipExecutionTestRuntime{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client := &Client{}
+	client.config.PanelURL = "https://panel.example"
+	client.config.NodeID = "node-2"
+
+	session, err := client.ConnectWithOwnershipExecution(
+		context.Background(),
+		execution,
+	)
+
+	if !errors.Is(err, ErrOwnershipExecutionUnavailable) {
+		t.Fatalf("expected identity mismatch rejection, got %v", err)
+	}
+	if session != nil {
+		t.Fatal("expected nil session")
 	}
 }
