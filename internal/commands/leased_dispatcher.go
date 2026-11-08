@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/Tyravex/agent/internal/ownership"
 )
 
 var ErrLeaseUnavailable = errors.New(
@@ -15,14 +17,9 @@ var ErrLeaseUnavailable = errors.New(
 //
 // Implementations must keep the assignment stable until
 // the callback returns.
-type ServiceLeaseStore interface {
-	WithAuthorizedService(
-		ctx context.Context,
-		nodeID string,
-		serviceID string,
-		run func() error,
-	) error
-}
+// ServiceLeaseStore is retained as a compatibility alias
+// while ownership is extracted from commands.
+type ServiceLeaseStore = ownership.ServiceLeaseStore
 
 // LeasedDispatcher executes lifecycle commands while
 // holding an ownership lease.

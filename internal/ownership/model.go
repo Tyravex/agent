@@ -23,3 +23,17 @@ type ServiceOwnershipStore interface {
 		serviceID string,
 	) (ServiceOwnership, error)
 }
+
+// ServiceLeaseStore executes a callback while the trusted
+// ownership assignment remains protected from changes.
+//
+// Implementations must keep the assignment stable until
+// the callback returns.
+type ServiceLeaseStore interface {
+	WithAuthorizedService(
+		ctx context.Context,
+		nodeID string,
+		serviceID string,
+		run func() error,
+	) error
+}
