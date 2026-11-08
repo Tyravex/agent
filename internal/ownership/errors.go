@@ -25,3 +25,8 @@ var ErrLeaseUnavailable = errors.New(
 var ErrOwnershipNotFound = errors.New(
 	"service ownership not found",
 )
+
+// ErrOwnershipStoreCorrupt indicates an invalid revision journal.
+var ErrOwnershipStoreCorrupt = errors.New(
+	"persistent ownership store is corrupt",
+)

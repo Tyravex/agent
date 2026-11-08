@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	"github.com/Tyravex/agent/internal/ownership"
 )
 
 var (
@@ -71,7 +73,7 @@ func ensureOwnershipJournalInitialized(
 
 	// Validate the entire journal before publishing
 	// the initialization marker.
-	_, _, readErr := readOwnershipRevisionLog(
+	_, _, readErr := ownership.ReadRevisionLog(
 		file,
 		expectedNodeID,
 	)

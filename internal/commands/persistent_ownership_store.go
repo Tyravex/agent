@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,24 +9,22 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/Tyravex/agent/internal/ownership"
 )
 
 var (
 	ErrOwnershipStoreLocked = errors.New(
 		"persistent ownership store already locked",
 	)
-	ErrOwnershipStoreCorrupt = errors.New(
-		"persistent ownership store is corrupt",
-	)
-	ErrOwnershipStoreClosed = errors.New(
+	ErrOwnershipStoreCorrupt = ownership.ErrOwnershipStoreCorrupt
+	ErrOwnershipStoreClosed  = errors.New(
 		"persistent ownership store is closed",
 	)
 	ErrOwnershipStorePoisoned = errors.New(
 		"persistent ownership store requires recovery",
 	)
 )
-
-const maxRevisionRecordBytes = 4096
 
 type ownershipRevisionRecord struct {
 	NodeID   string `json:"node_id"`
@@ -134,7 +131,7 @@ func OpenPersistentOwnershipStore(
 		}
 	}()
 
-	revision, applied, err := readOwnershipRevisionLog(
+	revision, applied, err := ownership.ReadRevisionLog(
 		file,
 		nodeID,
 	)
@@ -163,64 +160,6 @@ func OpenPersistentOwnershipStore(
 
 	success = true
 	return store, nil
-}
-
-func readOwnershipRevisionLog(
-	file *os.File,
-	expectedNodeID string,
-) (uint64, bool, error) {
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return 0, false, err
-	}
-
-	reader := bufio.NewReader(file)
-
-	var revision uint64
-	var applied bool
-
-	for {
-		line, err := reader.ReadBytes('\n')
-
-		if len(line) == 0 && errors.Is(err, io.EOF) {
-			break
-		}
-
-		if len(line) > maxRevisionRecordBytes ||
-			len(line) == 0 ||
-			line[len(line)-1] != '\n' {
-			return 0, false, ErrOwnershipStoreCorrupt
-		}
-
-		var record ownershipRevisionRecord
-
-		if jsonErr := json.Unmarshal(
-			line,
-			&record,
-		); jsonErr != nil {
-			return 0, false, fmt.Errorf(
-				"%w: invalid JSON",
-				ErrOwnershipStoreCorrupt,
-			)
-		}
-
-		if record.NodeID != expectedNodeID ||
-			record.Revision == 0 ||
-			(applied && record.Revision <= revision) {
-			return 0, false, ErrOwnershipStoreCorrupt
-		}
-
-		revision = record.Revision
-		applied = true
-
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return 0, false, err
-		}
-	}
-
-	return revision, applied, nil
 }
 
 func (s *PersistentOwnershipStore) ApplySnapshot(
