@@ -19,6 +19,7 @@ const (
 type Runner struct {
 	config    config.Config
 	transport *transport.Client
+	ownership *transport.OwnershipExecution
 	startedAt time.Time
 }
 
