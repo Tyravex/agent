@@ -3,7 +3,7 @@ package agent
 import (
 	"context"
 
-	"github.com/Tyravex/agent/internal/transport"
+	transport "github.com/Tyravex/agent/internal/transport/panelws"
 )
 
 // connectWithLocalOwnership validates local ownership authorization

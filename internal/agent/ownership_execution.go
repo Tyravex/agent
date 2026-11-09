@@ -7,7 +7,7 @@ import (
 
 	"github.com/Tyravex/agent/internal/command"
 	"github.com/Tyravex/agent/internal/config"
-	"github.com/Tyravex/agent/internal/transport"
+	transport "github.com/Tyravex/agent/internal/transport/panelws"
 )
 
 var ErrRunnerOwnershipExecutionUnavailable = errors.New(

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/Tyravex/agent/internal/config"
-	"github.com/Tyravex/agent/internal/transport"
+	transport "github.com/Tyravex/agent/internal/transport/panelws"
 )
 
 func TestRunnerOwnershipConnectRejectsUnconfigured(t *testing.T) {

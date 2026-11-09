@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Tyravex/agent/internal/config"
-	"github.com/Tyravex/agent/internal/transport"
+	transport "github.com/Tyravex/agent/internal/transport/panelws"
 )
 
 const (

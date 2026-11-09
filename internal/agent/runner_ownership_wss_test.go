@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Tyravex/agent/internal/runtime/docker"
-	"github.com/Tyravex/agent/internal/transport"
+	transport "github.com/Tyravex/agent/internal/transport/panelws"
 	"github.com/coder/websocket"
 )
 
