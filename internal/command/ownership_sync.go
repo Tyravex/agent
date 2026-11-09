@@ -228,7 +228,7 @@ func (m *OwnershipSyncManager) ApplySnapshot(
 		return err
 	}
 
-	replacement, err := validateOwnershipSnapshot(
+	replacement, err := ownership.ValidateSnapshot(
 		snapshot,
 		m.nodeID,
 	)
@@ -283,7 +283,7 @@ func (m *OwnershipSyncManager) ApplySnapshotWithGeneration(
 		return err
 	}
 
-	replacement, err := validateOwnershipSnapshot(
+	replacement, err := ownership.ValidateSnapshot(
 		snapshot,
 		m.nodeID,
 	)
