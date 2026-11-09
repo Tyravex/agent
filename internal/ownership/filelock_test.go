@@ -1,4 +1,4 @@
-package commands
+package ownership
 
 import (
 	"context"
@@ -21,7 +21,7 @@ func TestOwnershipFileLockExclusive(t *testing.T) {
 	}
 	defer first.Close()
 
-	if err := lockOwnershipFile(first); err != nil {
+	if err := LockFile(first); err != nil {
 		t.Fatalf("first lock: %v", err)
 	}
 
@@ -35,7 +35,7 @@ func TestOwnershipFileLockExclusive(t *testing.T) {
 	}
 	defer second.Close()
 
-	err = lockOwnershipFile(second)
+	err = LockFile(second)
 	if !errors.Is(err, ErrOwnershipStoreLocked) {
 		t.Fatalf(
 			"expected exclusive lock denial, got %v",
@@ -43,18 +43,18 @@ func TestOwnershipFileLockExclusive(t *testing.T) {
 		)
 	}
 
-	if err := unlockOwnershipFile(first); err != nil {
+	if err := UnlockFile(first); err != nil {
 		t.Fatalf("unlock first: %v", err)
 	}
 
-	if err := lockOwnershipFile(second); err != nil {
+	if err := LockFile(second); err != nil {
 		t.Fatalf(
 			"second lock after release: %v",
 			err,
 		)
 	}
 
-	if err := unlockOwnershipFile(second); err != nil {
+	if err := UnlockFile(second); err != nil {
 		t.Fatalf("unlock second: %v", err)
 	}
 }
@@ -176,14 +176,14 @@ func TestOwnershipFileLockReleasedAfterFailedOpen(
 	}
 	defer lockFile.Close()
 
-	if err := lockOwnershipFile(lockFile); err != nil {
+	if err := LockFile(lockFile); err != nil {
 		t.Fatalf(
 			"failed open retained lock: %v",
 			err,
 		)
 	}
 
-	if err := unlockOwnershipFile(lockFile); err != nil {
+	if err := UnlockFile(lockFile); err != nil {
 		t.Fatalf("unlock: %v", err)
 	}
 }
