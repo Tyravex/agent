@@ -107,7 +107,7 @@ func (s *Session) handleCommand(
 	}
 
 	if isInstallation {
-		command, err := DecodeServiceInstallCommand(payload)
+		command, err := protocol.DecodeServiceInstallCommand(payload)
 		if err != nil {
 			return fmt.Errorf(
 				"invalid service installation command: %w",

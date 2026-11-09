@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Tyravex/agent/internal/services"
+	"github.com/Tyravex/agent/internal/transport/protocol"
 )
 
 // ErrInstallAllocationUnavailable means the current Panel protocol
@@ -45,18 +46,18 @@ type InstallInputs struct {
 // It does not invoke Docker, create volumes, or change any service
 // state. Missing inputs cause a deterministic error.
 func BuildServiceInstallPlan(
-	command ServiceInstallCommand,
+	command protocol.ServiceInstallCommand,
 	inputs InstallInputs,
 	capabilities services.InstallCapabilities,
 ) (services.InstallPlan, error) {
-	if err := ValidateServiceInstallPayload(command.Install); err != nil {
+	if err := protocol.ValidateServiceInstallPayload(command.Install); err != nil {
 		return services.InstallPlan{}, fmt.Errorf(
 			"invalid installation payload: %w",
 			err,
 		)
 	}
 
-	if !validInstallCommandID(command.CommandID) {
+	if !protocol.ValidInstallCommandID(command.CommandID) {
 		return services.InstallPlan{}, errors.New(
 			"invalid installation command ID",
 		)

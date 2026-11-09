@@ -5,32 +5,33 @@ import (
 	"testing"
 
 	"github.com/Tyravex/agent/internal/services"
+	"github.com/Tyravex/agent/internal/transport/protocol"
 )
 
-func validServiceInstallPlanCommand() ServiceInstallCommand {
-	return ServiceInstallCommand{
+func validServiceInstallPlanCommand() protocol.ServiceInstallCommand {
+	return protocol.ServiceInstallCommand{
 		CommandID: "command-123",
 		ServiceID: "service-123",
-		Install: ServiceInstallPayload{
+		Install: protocol.ServiceInstallPayload{
 			FormatVersion: 1,
 			ServiceID:     "service-123",
 			JobID:         "job-123",
 			NodeID:        "node-123",
-			Egg: ServiceInstallEgg{
+			Egg: protocol.ServiceInstallEgg{
 				ID:      "egg-123",
 				Key:     "minecraft-paper",
 				Version: "1.0.0",
 			},
-			Runtime: ServiceInstallRuntime{
+			Runtime: protocol.ServiceInstallRuntime{
 				Image:   "itzg/minecraft-server:latest",
 				Startup: "java -jar server.jar",
 			},
-			Resources: ServiceInstallResources{
+			Resources: protocol.ServiceInstallResources{
 				MemoryMB:   2048,
 				CPUPercent: 100,
 				DiskMB:     10240,
 			},
-			Variables: []ServiceInstallVariable{
+			Variables: []protocol.ServiceInstallVariable{
 				{
 					Key:      "EULA",
 					Required: true,

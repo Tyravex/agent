@@ -108,7 +108,7 @@ func TestDecodeServiceInstallCommandRejectsDuplicateKeys(t *testing.T) {
 
 			data = strings.Replace(data, tt.before, tt.after, 1)
 
-			if _, err := DecodeServiceInstallCommand([]byte(data)); err == nil {
+			if _, err := protocol.DecodeServiceInstallCommand([]byte(data)); err == nil {
 				t.Fatal("expected duplicate JSON key rejection")
 			}
 		})
@@ -123,7 +123,7 @@ func TestDecodeServiceInstallPayloadRejectsDuplicateKeys(t *testing.T) {
 		1,
 	)
 
-	if _, err := DecodeServiceInstallPayload([]byte(data)); err == nil {
+	if _, err := protocol.DecodeServiceInstallPayload([]byte(data)); err == nil {
 		t.Fatal("expected duplicate JSON key rejection")
 	}
 }
