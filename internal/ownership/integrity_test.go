@@ -1,4 +1,4 @@
-package commands
+package ownership
 
 import (
 	"crypto/sha256"
@@ -29,9 +29,9 @@ func TestOwnershipIntegrityJournalHash(t *testing.T) {
 	}
 	defer file.Close()
 
-	hash, err := readOwnershipJournalHash(file)
+	hash, err := ReadJournalHash(file)
 	if err != nil {
-		t.Fatalf("readOwnershipJournalHash: %v", err)
+		t.Fatalf("ReadJournalHash: %v", err)
 	}
 
 	expected := sha256.Sum256(data)
@@ -70,16 +70,16 @@ func TestOwnershipIntegrityDetectsModifiedJournal(
 		t.Fatalf("open journal: %v", err)
 	}
 
-	hash, err := readOwnershipJournalHash(file)
+	hash, err := ReadJournalHash(file)
 	_ = file.Close()
 
 	if err != nil {
 		t.Fatalf("hash: %v", err)
 	}
 
-	if err := writeOwnershipIntegrity(
+	if err := WriteIntegrity(
 		integrityPath,
-		ownershipIntegrityRecord{
+		IntegrityRecord{
 			NodeID:   "node-1",
 			Revision: 10,
 			SHA256:   hash,
@@ -102,7 +102,7 @@ func TestOwnershipIntegrityDetectsModifiedJournal(
 		t.Fatalf("modify journal: %v", err)
 	}
 
-	metadata, err := readOwnershipIntegrity(
+	metadata, err := ReadIntegrity(
 		integrityPath,
 	)
 	if err != nil {
@@ -115,7 +115,7 @@ func TestOwnershipIntegrityDetectsModifiedJournal(
 	}
 	defer file.Close()
 
-	currentHash, err := readOwnershipJournalHash(file)
+	currentHash, err := ReadJournalHash(file)
 	if err != nil {
 		t.Fatalf("current hash: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestOwnershipIntegrityRejectsInvalidMetadata(
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	_, err := readOwnershipIntegrity(path)
+	_, err := ReadIntegrity(path)
 
 	if !errors.Is(err, ErrOwnershipIntegrity) {
 		t.Fatalf(
@@ -159,7 +159,7 @@ func TestOwnershipIntegrityMissingMetadata(
 		"missing.integrity",
 	)
 
-	_, err := readOwnershipIntegrity(path)
+	_, err := ReadIntegrity(path)
 
 	if !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf(
@@ -175,22 +175,22 @@ func TestOwnershipIntegrityWriteAndRead(t *testing.T) {
 		"revisions.integrity",
 	)
 
-	record := ownershipIntegrityRecord{
+	record := IntegrityRecord{
 		NodeID:   "node-1",
 		Revision: 42,
 		SHA256:   hex.EncodeToString(make([]byte, sha256.Size)),
 	}
 
-	if err := writeOwnershipIntegrity(
+	if err := WriteIntegrity(
 		path,
 		record,
 	); err != nil {
-		t.Fatalf("writeOwnershipIntegrity: %v", err)
+		t.Fatalf("WriteIntegrity: %v", err)
 	}
 
-	loaded, err := readOwnershipIntegrity(path)
+	loaded, err := ReadIntegrity(path)
 	if err != nil {
-		t.Fatalf("readOwnershipIntegrity: %v", err)
+		t.Fatalf("ReadIntegrity: %v", err)
 	}
 
 	if loaded != record {
