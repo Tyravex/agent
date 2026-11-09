@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	agent "github.com/Tyravex/agent/internal/app"
 	"github.com/Tyravex/agent/internal/config"
 )
 
@@ -27,7 +28,7 @@ func TestRunAgentRejectsOccupiedPort(t *testing.T) {
 	)
 	defer cancel()
 
-	if err := runAgent(ctx, cfg); err == nil {
+	if err := agent.Run(ctx, cfg); err == nil {
 		t.Fatal("expected error when HTTP port is occupied")
 	}
 }
@@ -38,7 +39,7 @@ func TestRunAgentRejectsPublicAddress(t *testing.T) {
 		APIToken:  "test-api-token",
 	}
 
-	if err := runAgent(context.Background(), cfg); err == nil {
+	if err := agent.Run(context.Background(), cfg); err == nil {
 		t.Fatal("expected public listen address rejection")
 	}
 }
