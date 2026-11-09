@@ -1,4 +1,4 @@
-package commands
+package ownership
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func TestOwnershipInitializationFirstStartup(t *testing.T) {
 		t.Fatalf("read marker: %v", err)
 	}
 
-	if string(marker) != ownershipInitializationMarker {
+	if string(marker) != InitializationMarker {
 		t.Fatalf("unexpected marker: %q", marker)
 	}
 }
@@ -138,7 +138,7 @@ func TestOwnershipInitializationPreservesLegacyJournal(
 		t.Fatalf("legacy marker missing: %v", err)
 	}
 
-	if string(marker) != ownershipInitializationMarker {
+	if string(marker) != InitializationMarker {
 		t.Fatalf("invalid migrated marker: %q", marker)
 	}
 }

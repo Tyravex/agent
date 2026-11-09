@@ -1,4 +1,4 @@
-package commands
+package ownership
 
 import (
 	"context"
@@ -43,13 +43,13 @@ func TestOwnershipInitializationRecovery(
 			name:          "completed marker with empty journal",
 			writeJournal:  true,
 			writeMarker:   true,
-			marker:        []byte(ownershipInitializationMarker),
+			marker:        []byte(InitializationMarker),
 			wantNewMarker: true,
 		},
 		{
 			name:        "completed marker but missing journal",
 			writeMarker: true,
-			marker:      []byte(ownershipInitializationMarker),
+			marker:      []byte(InitializationMarker),
 			wantErr:     ErrOwnershipJournalMissing,
 		},
 		{
@@ -88,7 +88,7 @@ func TestOwnershipInitializationRecovery(
 			),
 			writeMarker: true,
 			marker: []byte(
-				ownershipInitializationMarker,
+				InitializationMarker,
 			),
 			wantRevision: 10,
 			wantApplied:  true,
@@ -182,7 +182,7 @@ func TestOwnershipInitializationRecovery(
 				}
 
 				if string(marker) !=
-					ownershipInitializationMarker {
+					InitializationMarker {
 					t.Fatalf(
 						"invalid marker: %q",
 						marker,
