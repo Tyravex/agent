@@ -258,14 +258,18 @@ func (r *Runtime) ensureOwned(ctx context.Context, id string) error {
 		"container",
 		"inspect",
 		"--format",
-		`{{index .Config.Labels "dev.tyravex.service"}}`,
+		`{{index .Config.Labels "dev.tyravex.managed"}}|{{index .Config.Labels "dev.tyravex.service"}}`,
 		containerName(id),
 	)
 	if err != nil {
 		return err
 	}
 
-	if value != id {
+	return validateContainerOwnership(value, id)
+}
+
+func validateContainerOwnership(value, id string) error {
+	if value != "true|"+id {
 		return errors.New("container is not owned by Tyravex")
 	}
 
