@@ -1,8 +1,6 @@
-package transport
+package protocol
 
 import (
-	"github.com/Tyravex/agent/internal/transport/protocol"
-
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,7 +33,7 @@ type ServiceLifecycleCommand struct {
 func DecodeServiceLifecycleCommand(
 	data json.RawMessage,
 ) (ServiceLifecycleCommand, error) {
-	if err := protocol.RejectDuplicateJSONKeys(data); err != nil {
+	if err := RejectDuplicateJSONKeys(data); err != nil {
 		return ServiceLifecycleCommand{}, fmt.Errorf(
 			"%w: %v",
 			ErrInvalidServiceLifecycleCommand,
@@ -44,7 +42,7 @@ func DecodeServiceLifecycleCommand(
 	}
 
 	var command ServiceLifecycleCommand
-	if err := decodeStrict(data, &command); err != nil {
+	if err := decodeLifecycleStrict(data, &command); err != nil {
 		return ServiceLifecycleCommand{}, fmt.Errorf(
 			"%w: %v",
 			ErrInvalidServiceLifecycleCommand,

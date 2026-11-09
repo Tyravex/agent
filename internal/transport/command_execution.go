@@ -128,7 +128,7 @@ func (s *Session) handleCommand(
 		)
 	}
 
-	command, err := DecodeServiceLifecycleCommand(payload)
+	command, err := protocol.DecodeServiceLifecycleCommand(payload)
 	if err != nil {
 		return fmt.Errorf(
 			"invalid lifecycle command: %w",
@@ -187,7 +187,7 @@ func (s *Session) handleCommand(
 
 	s.commandState.mu.Unlock()
 
-	accepted := CommandAccepted{
+	accepted := protocol.CommandAccepted{
 		CommandID: command.CommandID,
 	}
 
@@ -214,7 +214,7 @@ func (s *Session) handleCommand(
 	}
 
 	if busy {
-		result, err := NewFailedCommandResult(
+		result, err := protocol.NewFailedCommandResult(
 			command.CommandID,
 			"COMMAND_BUSY",
 			"Another service operation is in progress",
@@ -257,16 +257,16 @@ func (s *Session) executeCommand(
 
 	err := executor.Execute(ctx, command)
 
-	var result CommandResult
+	var result protocol.CommandResult
 
 	if err != nil {
-		result, _ = NewFailedCommandResult(
+		result, _ = protocol.NewFailedCommandResult(
 			command.ID,
 			"EXECUTION_FAILED",
 			"Service operation failed",
 		)
 	} else {
-		result, _ = NewSuccessfulCommandResult(
+		result, _ = protocol.NewSuccessfulCommandResult(
 			command.ID,
 		)
 	}

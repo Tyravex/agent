@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	commands "github.com/Tyravex/agent/internal/command"
+	"github.com/Tyravex/agent/internal/transport/protocol"
 	"github.com/coder/websocket"
-
-	"github.com/Tyravex/agent/internal/command"
 )
 
 type recordingExecutor struct {
@@ -100,7 +100,7 @@ func TestSessionExecutesLifecycleCommand(t *testing.T) {
 				return
 			}
 
-			var payload CommandResult
+			var payload protocol.CommandResult
 			if err := json.Unmarshal(
 				result.Payload,
 				&payload,
@@ -173,7 +173,7 @@ func TestSessionRejectsDuplicateCommandID(t *testing.T) {
 }
 
 func TestCommandFailureMessageIsSanitized(t *testing.T) {
-	result, err := NewFailedCommandResult(
+	result, err := protocol.NewFailedCommandResult(
 		"command-1",
 		"EXECUTION_FAILED",
 		"Service operation failed",

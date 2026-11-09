@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Tyravex/agent/internal/transport/protocol"
 	"github.com/coder/websocket"
 )
 
@@ -64,7 +65,7 @@ func TestConnectWithExecutorHandlesImmediateCommand(t *testing.T) {
 				return
 			}
 
-			var acceptedPayload CommandAccepted
+			var acceptedPayload protocol.CommandAccepted
 			if err := json.Unmarshal(
 				accepted.Payload,
 				&acceptedPayload,
@@ -93,7 +94,7 @@ func TestConnectWithExecutorHandlesImmediateCommand(t *testing.T) {
 				return
 			}
 
-			var resultPayload CommandResult
+			var resultPayload protocol.CommandResult
 			if err := json.Unmarshal(
 				result.Payload,
 				&resultPayload,

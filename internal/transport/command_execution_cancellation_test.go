@@ -9,9 +9,8 @@ import (
 	"testing"
 	"time"
 
+	commands "github.com/Tyravex/agent/internal/command"
 	"github.com/coder/websocket"
-
-	"github.com/Tyravex/agent/internal/command"
 )
 
 type cancellationExecutor struct {

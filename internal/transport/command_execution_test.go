@@ -6,7 +6,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Tyravex/agent/internal/command"
+	commands "github.com/Tyravex/agent/internal/command"
+	"github.com/Tyravex/agent/internal/transport/protocol"
 )
 
 type fakeCommandExecutor struct {
@@ -51,7 +52,7 @@ func TestLifecycleCommandConvertsToDispatcherCommand(
 		"parameters":{}
 	}`)
 
-	decoded, err := DecodeServiceLifecycleCommand(raw)
+	decoded, err := protocol.DecodeServiceLifecycleCommand(raw)
 	if err != nil {
 		t.Fatalf("decode: %v", err)
 	}

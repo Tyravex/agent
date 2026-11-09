@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/Tyravex/agent/internal/command"
+	commands "github.com/Tyravex/agent/internal/command"
 )
 
 var ErrOwnershipExecutionUnavailable = errors.New(

@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	commands "github.com/Tyravex/agent/internal/command"
+	"github.com/Tyravex/agent/internal/transport/protocol"
 	"github.com/coder/websocket"
-
-	"github.com/Tyravex/agent/internal/command"
 )
 
 type sequentialExecutor struct {
@@ -146,7 +146,7 @@ func TestSessionLimitsConcurrentLifecycleCommands(t *testing.T) {
 				return
 			}
 
-			var busy CommandResult
+			var busy protocol.CommandResult
 			if err := json.Unmarshal(
 				secondResult.Payload,
 				&busy,
@@ -186,7 +186,7 @@ func TestSessionLimitsConcurrentLifecycleCommands(t *testing.T) {
 				return
 			}
 
-			var completed CommandResult
+			var completed protocol.CommandResult
 			if err := json.Unmarshal(
 				firstResult.Payload,
 				&completed,
@@ -427,7 +427,7 @@ func TestSessionAcceptsCommandAfterPreviousCompletes(t *testing.T) {
 				return
 			}
 
-			var payload CommandResult
+			var payload protocol.CommandResult
 			if err := json.Unmarshal(
 				nextResult.Payload,
 				&payload,

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/Tyravex/agent/internal/transport/protocol"
 )
 
 func TestSendEnvelopeRejectsClosedSession(
@@ -21,7 +23,7 @@ func TestSendEnvelopeRejectsClosedSession(
 	err := session.sendEnvelope(
 		context.Background(),
 		"command.accepted",
-		CommandAccepted{
+		protocol.CommandAccepted{
 			CommandID: "command-123",
 		},
 	)
@@ -44,7 +46,7 @@ func TestSendEnvelopeRejectsClosedSessionWithoutError(
 	err := session.sendEnvelope(
 		context.Background(),
 		"command.result",
-		CommandResult{
+		protocol.CommandResult{
 			CommandID: "command-123",
 			Success:   true,
 		},
@@ -71,7 +73,7 @@ func TestSendEnvelopeHonorsCancelledContext(
 	err := session.sendEnvelope(
 		ctx,
 		"command.accepted",
-		CommandAccepted{
+		protocol.CommandAccepted{
 			CommandID: "command-123",
 		},
 	)

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Tyravex/agent/internal/transport/protocol"
 	"github.com/coder/websocket"
 )
 
@@ -81,7 +82,7 @@ func TestPersistentCommandIDRejectedAfterClientRestart(t *testing.T) {
 					return
 				}
 
-				var completed CommandResult
+				var completed protocol.CommandResult
 				if err := decodeStrict(
 					result.Payload,
 					&completed,

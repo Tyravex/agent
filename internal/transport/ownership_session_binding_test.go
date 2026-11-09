@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Tyravex/agent/internal/command"
+	commands "github.com/Tyravex/agent/internal/command"
 )
 
 func TestOwnershipSessionBindingRejectsReplacement(t *testing.T) {

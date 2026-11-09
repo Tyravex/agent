@@ -1,4 +1,4 @@
-package transport
+package protocol
 
 import (
 	"encoding/json"
@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	maxCommandIDLength    = 128
-	maxCommandErrorLength = 128
-	maxCommandMessageLen  = 1024
+	maxCommandResultMetadataBytes = 8192
+	maxCommandIDLength            = 128
+	maxCommandErrorLength         = 128
+	maxCommandMessageLen          = 1024
 )
 
 var (
@@ -89,7 +90,7 @@ func (r CommandResult) Validate() error {
 			)
 		}
 
-		if len(encoded) > maxMessageBytes/2 {
+		if len(encoded) > maxCommandResultMetadataBytes {
 			return fmt.Errorf(
 				"%w: result metadata too large",
 				ErrInvalidCommandResponse,

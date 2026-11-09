@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	commands "github.com/Tyravex/agent/internal/command"
+	"github.com/Tyravex/agent/internal/transport/protocol"
 	"github.com/coder/websocket"
-
-	"github.com/Tyravex/agent/internal/command"
 )
 
 type blockingCommandExecutor struct {
@@ -318,7 +318,7 @@ func TestHeartbeatDuringRunningCommand(t *testing.T) {
 func TestCommandResultDoesNotExposeExecutorError(t *testing.T) {
 	secret := "secret-token-do-not-expose"
 
-	result, err := NewFailedCommandResult(
+	result, err := protocol.NewFailedCommandResult(
 		"command-1",
 		"EXECUTION_FAILED",
 		"Service operation failed",

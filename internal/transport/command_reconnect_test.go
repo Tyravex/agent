@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Tyravex/agent/internal/transport/protocol"
 	"github.com/coder/websocket"
 )
 
@@ -76,7 +77,7 @@ func TestCommandIDRejectedAfterReconnect(t *testing.T) {
 					return
 				}
 
-				var completed CommandResult
+				var completed protocol.CommandResult
 				if err := json.Unmarshal(
 					result.Payload,
 					&completed,

@@ -13,7 +13,7 @@ import (
 
 	"github.com/coder/websocket"
 
-	"github.com/Tyravex/agent/internal/command"
+	commands "github.com/Tyravex/agent/internal/command"
 )
 
 func TestOwnershipReconnectOldConnectionCannotRevokeNew(t *testing.T) {
