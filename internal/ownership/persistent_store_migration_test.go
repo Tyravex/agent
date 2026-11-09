@@ -1,4 +1,4 @@
-package commands
+package ownership
 
 import (
 	"context"
@@ -7,23 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 )
-
-func openTestPersistentStore(
-	t *testing.T,
-	path string,
-) *PersistentOwnershipStore {
-	t.Helper()
-
-	store, err := OpenPersistentOwnershipStore(
-		"node-1",
-		path,
-	)
-	if err != nil {
-		t.Fatalf("OpenPersistentOwnershipStore: %v", err)
-	}
-
-	return store
-}
 
 func TestPersistentOwnershipStoreRestartFailsClosed(
 	t *testing.T,
