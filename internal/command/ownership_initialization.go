@@ -10,13 +10,3 @@ var (
 	ErrOwnershipJournalMissing        = ownership.ErrOwnershipJournalMissing
 	ErrOwnershipInitializationCorrupt = ownership.ErrOwnershipInitializationCorrupt
 )
-
-func ensureOwnershipJournalInitialized(
-	path string,
-	expectedNodeID string,
-) error {
-	return ownership.EnsureJournalInitialized(
-		path,
-		expectedNodeID,
-	)
-}

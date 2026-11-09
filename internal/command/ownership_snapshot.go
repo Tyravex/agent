@@ -10,10 +10,3 @@ var (
 
 // OwnershipSnapshot remains available to existing callers.
 type OwnershipSnapshot = ownership.OwnershipSnapshot
-
-func validateOwnershipSnapshot(
-	snapshot OwnershipSnapshot,
-	expectedNodeID string,
-) (map[string]ServiceOwnership, error) {
-	return ownership.ValidateSnapshot(snapshot, expectedNodeID)
-}

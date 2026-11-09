@@ -15,7 +15,3 @@ type MemoryOwnershipStore = ownership.MemoryOwnershipStore
 func NewMemoryOwnershipStore() *MemoryOwnershipStore {
 	return ownership.NewMemoryOwnershipStore()
 }
-
-func validateOwnership(assignment ServiceOwnership) error {
-	return ownership.ValidateAssignment(assignment)
-}
