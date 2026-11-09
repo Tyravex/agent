@@ -21,7 +21,7 @@ import (
 
 	commands "github.com/Tyravex/agent/internal/command"
 	"github.com/Tyravex/agent/internal/config"
-	"github.com/Tyravex/agent/internal/version"
+	version "github.com/Tyravex/agent/internal/buildinfo"
 )
 
 const (

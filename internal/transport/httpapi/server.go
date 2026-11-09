@@ -11,7 +11,7 @@ import (
 
 	"github.com/Tyravex/agent/internal/config"
 	"github.com/Tyravex/agent/internal/runtime/docker"
-	"github.com/Tyravex/agent/internal/version"
+	version "github.com/Tyravex/agent/internal/buildinfo"
 )
 
 type Server struct {

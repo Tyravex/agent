@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Tyravex/agent/internal/services"
+	services "github.com/Tyravex/agent/internal/server"
 	"github.com/Tyravex/agent/internal/transport/protocol"
 )
 

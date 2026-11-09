@@ -16,7 +16,7 @@ import (
 	"github.com/Tyravex/agent/internal/config"
 	"github.com/Tyravex/agent/internal/runtime/docker"
 	api "github.com/Tyravex/agent/internal/transport/httpapi"
-	"github.com/Tyravex/agent/internal/version"
+	version "github.com/Tyravex/agent/internal/buildinfo"
 )
 
 func main() {
