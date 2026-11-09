@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/Tyravex/agent/internal/command"
+	commands "github.com/Tyravex/agent/internal/command"
 )
 
 // configureOwnershipExecution prepares one ownership execution

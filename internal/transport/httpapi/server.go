@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	version "github.com/Tyravex/agent/internal/buildinfo"
 	"github.com/Tyravex/agent/internal/config"
 	"github.com/Tyravex/agent/internal/runtime/docker"
-	version "github.com/Tyravex/agent/internal/buildinfo"
 )
 
 type Server struct {

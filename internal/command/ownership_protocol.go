@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Tyravex/agent/internal/ownership"
 	"io"
 	"time"
+
+	"github.com/Tyravex/agent/internal/ownership"
 )
 
 const (

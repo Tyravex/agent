@@ -19,9 +19,9 @@ import (
 
 	"github.com/coder/websocket"
 
+	version "github.com/Tyravex/agent/internal/buildinfo"
 	commands "github.com/Tyravex/agent/internal/command"
 	"github.com/Tyravex/agent/internal/config"
-	version "github.com/Tyravex/agent/internal/buildinfo"
 )
 
 const (
