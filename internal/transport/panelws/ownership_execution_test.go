@@ -78,8 +78,8 @@ func TestNewOwnershipExecutionSharesConnectionManager(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if execution.connections == nil || execution.dispatcher == nil {
-		t.Fatal("expected connection manager and dispatcher")
+	if execution.connections == nil || execution.binder == nil {
+		t.Fatal("expected connection manager and executor binder")
 	}
 
 	first, err := execution.connections.Open(context.Background())
@@ -128,7 +128,22 @@ func TestOwnershipExecutionDeniesWithoutReadySnapshot(t *testing.T) {
 		ServiceID: "service-1",
 	}
 
-	err = execution.dispatcher.Execute(context.Background(), command)
+	ctx := context.Background()
+
+	connection, err := execution.connections.Open(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connection.Close()
+
+	if err := connection.Activate(ctx, "session-no-ready"); err != nil {
+		t.Fatal(err)
+	}
+
+	executor := execution.binder.BindOwnershipGeneration(
+		connection.Generation(),
+	)
+	err = executor.Execute(ctx, command)
 	if !errors.Is(err, commands.ErrOwnershipNotReady) {
 		t.Fatalf("expected ownership not ready, got %v", err)
 	}

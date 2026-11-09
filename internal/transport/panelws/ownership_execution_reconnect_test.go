@@ -72,9 +72,12 @@ func TestOwnershipExecutionOldSessionCannotExecuteAfterReconnect(t *testing.T) {
 		Operation: commands.ServiceStart,
 	}
 
-	err = execution.dispatcher.Execute(ctx, command)
-	if !errors.Is(err, commands.ErrOwnershipNotReady) {
-		t.Fatalf("expected ownership NOT_READY, got %v", err)
+	oldExecutor := execution.binder.BindOwnershipGeneration(
+		oldConnection.Generation(),
+	)
+	err = oldExecutor.Execute(ctx, command)
+	if !errors.Is(err, commands.ErrOwnershipGenerationMismatch) {
+		t.Fatalf("expected ownership generation mismatch, got %v", err)
 	}
 
 	if got := runtime.callCount(); got != 0 {

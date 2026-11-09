@@ -246,6 +246,20 @@ func (c *Client) connect(
 			return nil, err
 		}
 	}
+	// Bind lifecycle authorization to this exact local
+	// WebSocket generation before processing commands.
+	if binder, ok := executor.(interface {
+		BindOwnershipGeneration(uint64) CommandExecutor
+	}); ok {
+		if ownership == nil || ownership.connection == nil {
+			conn.CloseNow()
+			return nil, ErrOwnershipExecutionUnavailable
+		}
+
+		executor = binder.BindOwnershipGeneration(
+			ownership.connection.Generation(),
+		)
+	}
 
 	// Bind the authenticated Panel session to the local
 	// ownership generation before starting the read loop.

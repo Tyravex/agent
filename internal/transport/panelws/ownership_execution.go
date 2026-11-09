@@ -17,10 +17,11 @@ var ErrOwnershipExecutionUnavailable = errors.New(
 // execution to the same ownership synchronization manager.
 //
 // Keep this object alive across WebSocket reconnects.
+
 type OwnershipExecution struct {
 	nodeID      string
 	connections *commands.OwnershipConnectionManager
-	dispatcher  *commands.LeasedDispatcher
+	binder      *ownershipExecutorBinder
 }
 
 // NewOwnershipExecution creates a shared ownership execution
@@ -43,11 +44,11 @@ func NewOwnershipExecution(
 		connections: commands.NewOwnershipConnectionManager(
 			syncManager,
 		),
-		dispatcher: commands.NewLeasedDispatcher(
-			nodeID,
-			syncManager,
-			commands.NewDockerExecutor(runtime),
-		),
+		binder: &ownershipExecutorBinder{
+			nodeID:      nodeID,
+			syncManager: syncManager,
+			runtime:     runtime,
+		},
 	}, nil
 }
 
@@ -59,7 +60,7 @@ func (c *Client) ConnectWithOwnershipExecution(
 ) (*Session, error) {
 	if execution == nil ||
 		execution.connections == nil ||
-		execution.dispatcher == nil ||
+		execution.binder == nil ||
 		execution.nodeID == "" {
 		return nil, ErrOwnershipExecutionUnavailable
 	}
@@ -78,7 +79,7 @@ func (c *Client) connectWithOwnershipExecution(
 	if c == nil ||
 		execution == nil ||
 		execution.connections == nil ||
-		execution.dispatcher == nil ||
+		execution.binder == nil ||
 		execution.nodeID != c.config.NodeID {
 		return nil, ErrOwnershipExecutionUnavailable
 	}
@@ -94,7 +95,7 @@ func (c *Client) connectWithOwnershipExecution(
 
 	return c.connect(
 		ctx,
-		execution.dispatcher,
+		execution.binder,
 		execution.connections,
 	)
 }

@@ -350,6 +350,7 @@ func TestOwnershipExecutionWebSocketRevokesOnDisconnect(t *testing.T) {
 
 	waitOwnershipReady(t, ctx, session, execution.connections)
 
+	generation := execution.connections.ActiveGeneration()
 	session.Close()
 
 	command := commands.Command{
@@ -358,7 +359,10 @@ func TestOwnershipExecutionWebSocketRevokesOnDisconnect(t *testing.T) {
 		Operation: commands.ServiceStart,
 	}
 
-	if err := execution.dispatcher.Execute(ctx, command); err == nil {
+	executor := execution.binder.BindOwnershipGeneration(
+		generation,
+	)
+	if err := executor.Execute(ctx, command); err == nil {
 		t.Fatal("command was authorized after disconnect")
 	}
 
