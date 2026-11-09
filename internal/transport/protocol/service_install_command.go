@@ -1,8 +1,6 @@
-package transport
+package protocol
 
 import (
-	"github.com/Tyravex/agent/internal/transport/protocol"
-
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -11,7 +9,7 @@ import (
 	"strings"
 )
 
-const serviceInstallOperation = "service.install"
+const ServiceInstallOperation = "service.install"
 
 type ServiceInstallCommand struct {
 	CommandID string
@@ -22,7 +20,7 @@ type ServiceInstallCommand struct {
 func DecodeServiceInstallCommand(
 	data []byte,
 ) (ServiceInstallCommand, error) {
-	if err := protocol.RejectDuplicateJSONKeys(data); err != nil {
+	if err := RejectDuplicateJSONKeys(data); err != nil {
 		return ServiceInstallCommand{}, fmt.Errorf(
 			"invalid installation command JSON keys: %w",
 			err,
@@ -54,13 +52,13 @@ func DecodeServiceInstallCommand(
 		)
 	}
 
-	if !validInstallCommandID(raw.CommandID) {
+	if !ValidInstallCommandID(raw.CommandID) {
 		return ServiceInstallCommand{}, errors.New(
 			"invalid installation command ID",
 		)
 	}
 
-	if raw.Operation != serviceInstallOperation {
+	if raw.Operation != ServiceInstallOperation {
 		return ServiceInstallCommand{}, errors.New(
 			"unsupported installation operation",
 		)
@@ -99,6 +97,6 @@ func DecodeServiceInstallCommand(
 	}, nil
 }
 
-func validInstallCommandID(value string) bool {
+func ValidInstallCommandID(value string) bool {
 	return strings.TrimSpace(value) != "" && len(value) <= 128
 }

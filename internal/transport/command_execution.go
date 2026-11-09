@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Tyravex/agent/internal/command"
+	commands "github.com/Tyravex/agent/internal/command"
+	"github.com/Tyravex/agent/internal/transport/protocol"
 )
 
 const maxRememberedCommands = 4096
@@ -84,7 +85,7 @@ func (s *Session) handleCommand(
 
 	// Installation-shaped commands must always go through
 	// the installation decoder, including invalid operations.
-	isInstallation := raw.Operation == serviceInstallOperation
+	isInstallation := raw.Operation == protocol.ServiceInstallOperation
 
 	if !isInstallation && len(raw.Parameters) > 0 {
 		var parameters map[string]json.RawMessage
