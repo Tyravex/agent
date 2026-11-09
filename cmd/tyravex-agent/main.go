@@ -12,11 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Tyravex/agent/internal/agent"
+	agent "github.com/Tyravex/agent/internal/app"
+	version "github.com/Tyravex/agent/internal/buildinfo"
 	"github.com/Tyravex/agent/internal/config"
 	"github.com/Tyravex/agent/internal/runtime/docker"
 	api "github.com/Tyravex/agent/internal/transport/httpapi"
-	version "github.com/Tyravex/agent/internal/buildinfo"
 )
 
 func main() {

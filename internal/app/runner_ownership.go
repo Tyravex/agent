@@ -1,4 +1,4 @@
-package agent
+package app
 
 import (
 	"github.com/Tyravex/agent/internal/command"
