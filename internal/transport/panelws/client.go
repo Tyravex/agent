@@ -467,6 +467,16 @@ func (s *Session) readLoop(ctx context.Context) {
 
 		switch envelope.Type {
 		case "command.execute":
+			if s.ownership != nil {
+				if err := s.ownership.checkActive(ctx); err != nil {
+					s.shutdown(fmt.Errorf(
+						"command from inactive ownership session: %w",
+						err,
+					))
+					return
+				}
+			}
+
 			if err := s.handleCommand(
 				ctx,
 				envelope.Payload,
