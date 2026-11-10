@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	commands "github.com/Tyravex/agent/internal/command"
 	"github.com/Tyravex/agent/internal/config"
+	transport "github.com/Tyravex/agent/internal/transport/panelws"
 	"github.com/coder/websocket"
 )
 
@@ -39,6 +41,7 @@ func TestRunnerWebSocketReconnect(t *testing.T) {
 	var connections atomic.Int32
 
 	heartbeats := make(chan int32, 4)
+	releaseFirstConnection := make(chan struct{})
 	serverErrors := make(chan error, 8)
 
 	reportError := func(err error) {
@@ -48,7 +51,7 @@ func TestRunnerWebSocketReconnect(t *testing.T) {
 		}
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(
+	server := httptest.NewTLSServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path != "/agent/v1/ws" {
 				reportError(fmt.Errorf(
@@ -134,6 +137,7 @@ func TestRunnerWebSocketReconnect(t *testing.T) {
 				"payload": map[string]any{
 					"nodeId":                   nodeID,
 					"heartbeatIntervalSeconds": 5,
+					"sessionId":                fmt.Sprintf("session-%016d", connectionNumber),
 				},
 			}
 
@@ -220,6 +224,41 @@ func TestRunnerWebSocketReconnect(t *testing.T) {
 				reportError(fmt.Errorf("write ACK: %w", err))
 				return
 			}
+			snapshot := map[string]any{
+				"protocol":  1,
+				"id":        fmt.Sprintf("snapshot-%d", connectionNumber),
+				"type":      "ownership.snapshot",
+				"timestamp": time.Now().UTC().Format(time.RFC3339Nano),
+				"payload": map[string]any{
+					"type":        "ownership.snapshot",
+					"session_id":  fmt.Sprintf("session-%016d", connectionNumber),
+					"node_id":     nodeID,
+					"revision":    1,
+					"ttl_seconds": 60,
+					"assignments": []any{
+						map[string]any{
+							"service_id": "integration-service",
+							"node_id":    nodeID,
+							"enabled":    true,
+						},
+					},
+				},
+			}
+
+			snapshotData, err := json.Marshal(snapshot)
+			if err != nil {
+				reportError(fmt.Errorf("encode snapshot: %w", err))
+				return
+			}
+
+			if err := conn.Write(
+				ctx,
+				websocket.MessageText,
+				snapshotData,
+			); err != nil {
+				reportError(fmt.Errorf("write snapshot: %w", err))
+				return
+			}
 
 			select {
 			case heartbeats <- connectionNumber:
@@ -228,6 +267,13 @@ func TestRunnerWebSocketReconnect(t *testing.T) {
 			}
 
 			if connectionNumber == 1 {
+				// Wait until the test confirms ownership synchronization.
+				select {
+				case <-releaseFirstConnection:
+				case <-ctx.Done():
+					return
+				}
+
 				// Force a disconnect to verify automatic reconnection.
 				return
 			}
@@ -253,9 +299,15 @@ func TestRunnerWebSocketReconnect(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	runnerDone := make(chan struct{})
 
+	runner := NewRunner(cfg)
+	runner.transport = transport.NewClientWithHTTPClient(
+		cfg,
+		server.Client(),
+	)
+
 	go func() {
 		defer close(runnerDone)
-		NewRunner(cfg).Run(ctx)
+		runner.Run(ctx)
 	}()
 
 	defer func() {
@@ -271,6 +323,57 @@ func TestRunnerWebSocketReconnect(t *testing.T) {
 	defer timeout.Stop()
 
 	for expected := int32(1); expected <= 2; expected++ {
+		if expected == 2 {
+			deadline := time.Now().Add(3 * time.Second)
+
+			for {
+				status := runner.ownershipConnections.Status()
+				generation := runner.ownershipConnections.ActiveGeneration()
+
+				if status.State == commands.OwnershipReady &&
+					status.SessionID == "session-0000000000000001" &&
+					status.Generation == 1 &&
+					status.Revision == 1 &&
+					generation == 1 {
+					break
+				}
+
+				if time.Now().After(deadline) {
+					t.Fatalf(
+						"first snapshot not synchronized: status=%+v, activeGeneration=%d",
+						status,
+						generation,
+					)
+				}
+
+				time.Sleep(10 * time.Millisecond)
+			}
+
+			close(releaseFirstConnection)
+
+			// Disconnect must revoke ownership before reconnect.
+			revokeDeadline := time.Now().Add(1500 * time.Millisecond)
+
+			for {
+				status := runner.ownershipConnections.Status()
+				generation := runner.ownershipConnections.ActiveGeneration()
+
+				if status.State == commands.OwnershipNotReady &&
+					generation == 0 {
+					break
+				}
+
+				if time.Now().After(revokeDeadline) {
+					t.Fatalf(
+						"ownership not revoked after disconnect: status=%+v, activeGeneration=%d",
+						status,
+						generation,
+					)
+				}
+
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
 		select {
 		case err := <-serverErrors:
 			t.Fatalf("mock Panel error: %v", err)
@@ -292,6 +395,31 @@ func TestRunnerWebSocketReconnect(t *testing.T) {
 		}
 	}
 
+	// The reconnected session must synchronize its own ownership snapshot.
+	secondDeadline := time.Now().Add(3 * time.Second)
+
+	for {
+		status := runner.ownershipConnections.Status()
+		generation := runner.ownershipConnections.ActiveGeneration()
+
+		if status.State == commands.OwnershipReady &&
+			status.SessionID == "session-0000000000000002" &&
+			status.Generation == 2 &&
+			status.Revision == 1 &&
+			generation == 2 {
+			break
+		}
+
+		if time.Now().After(secondDeadline) {
+			t.Fatalf(
+				"second snapshot not synchronized: status=%+v, activeGeneration=%d",
+				status,
+				generation,
+			)
+		}
+
+		time.Sleep(10 * time.Millisecond)
+	}
 	if got := connections.Load(); got != 2 {
 		t.Fatalf("expected 2 connections, got %d", got)
 	}

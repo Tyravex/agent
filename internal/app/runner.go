@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	commands "github.com/Tyravex/agent/internal/command"
 	"github.com/Tyravex/agent/internal/config"
 	transport "github.com/Tyravex/agent/internal/transport/panelws"
 )
@@ -18,6 +19,7 @@ const (
 type Runner struct {
 	config                 config.Config
 	transport              *transport.Client
+	ownershipConnections   *commands.OwnershipConnectionManager
 	ownership              *transport.OwnershipExecution
 	localDockerHost        string
 	localOwnershipIdentity *ownershipIdentity
@@ -25,10 +27,13 @@ type Runner struct {
 }
 
 func NewRunner(cfg config.Config) *Runner {
+	syncManager := commands.NewOwnershipSyncManager(cfg.NodeID)
+
 	return &Runner{
-		config:    cfg,
-		transport: transport.NewClient(cfg),
-		startedAt: time.Now(),
+		config:               cfg,
+		transport:            transport.NewClient(cfg),
+		ownershipConnections: commands.NewOwnershipConnectionManager(syncManager),
+		startedAt:            time.Now(),
 	}
 }
 
@@ -39,7 +44,7 @@ func (r *Runner) Run(ctx context.Context) {
 	reconnectDelay := reconnectInitialDelay
 
 	for ctx.Err() == nil {
-		session, err := r.transport.Connect(ctx)
+		session, err := r.transport.ConnectWithOwnership(ctx, r.ownershipConnections)
 		if err != nil {
 			if ctx.Err() != nil {
 				return
