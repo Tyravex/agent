@@ -84,6 +84,70 @@ func TestStatusAuthorized(t *testing.T) {
 	}
 }
 
+func TestStatusOwnershipState(t *testing.T) {
+	state := "NOT_READY"
+
+	cfg := config.Config{
+		NodeID:        "test-node",
+		APIToken:      "test-api-secret-token",
+		DockerEnabled: false,
+	}
+
+	server := NewServer(cfg, func() string {
+		return state
+	})
+
+	check := func(expected string) {
+		t.Helper()
+
+		req := httptest.NewRequest(
+			http.MethodGet,
+			"/api/v1/status",
+			nil,
+		)
+		req.Header.Set(
+			"Authorization",
+			"Bearer test-api-secret-token",
+		)
+
+		rec := httptest.NewRecorder()
+		server.Handler().ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf(
+				"expected 200, got %d: %s",
+				rec.Code,
+				rec.Body.String(),
+			)
+		}
+
+		var response struct {
+			Status         string `json:"status"`
+			NodeID         string `json:"nodeId"`
+			OwnershipState string `json:"ownershipState"`
+		}
+
+		if err := json.Unmarshal(rec.Body.Bytes(), &response); err != nil {
+			t.Fatal(err)
+		}
+
+		if response.Status != "online" ||
+			response.NodeID != "test-node" ||
+			response.OwnershipState != expected {
+			t.Fatalf(
+				"unexpected response for %s: %+v",
+				expected,
+				response,
+			)
+		}
+	}
+
+	check("NOT_READY")
+
+	state = "READY"
+	check("READY")
+}
+
 func TestDockerDisabled(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/docker", nil)
 	req.Header.Set("Authorization", "Bearer test-api-secret-token")

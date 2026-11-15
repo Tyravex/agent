@@ -14,16 +14,23 @@ import (
 	"github.com/Tyravex/agent/internal/runtime/docker"
 )
 
+type OwnershipStateProvider func() string
+
 type Server struct {
-	cfg     config.Config
-	started time.Time
-	handler http.Handler
+	ownershipState OwnershipStateProvider
+	cfg            config.Config
+	started        time.Time
+	handler        http.Handler
 }
 
-func NewServer(cfg config.Config) *Server {
+func NewServer(cfg config.Config, ownershipState ...OwnershipStateProvider) *Server {
 	s := &Server{
 		cfg:     cfg,
 		started: time.Now(),
+	}
+
+	if len(ownershipState) > 0 {
+		s.ownershipState = ownershipState[0]
 	}
 
 	mux := http.NewServeMux()
@@ -76,18 +83,27 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, struct {
-		Status        string       `json:"status"`
-		NodeID        string       `json:"nodeId"`
-		UptimeSeconds int64        `json:"uptimeSeconds"`
-		Version       version.Info `json:"version"`
-		DockerEnabled bool         `json:"dockerEnabled"`
+		Status         string       `json:"status"`
+		NodeID         string       `json:"nodeId"`
+		UptimeSeconds  int64        `json:"uptimeSeconds"`
+		Version        version.Info `json:"version"`
+		DockerEnabled  bool         `json:"dockerEnabled"`
+		OwnershipState string       `json:"ownershipState,omitempty"`
 	}{
-		Status:        "online",
-		NodeID:        s.cfg.NodeID,
-		UptimeSeconds: int64(time.Since(s.started).Seconds()),
-		Version:       version.Current(),
-		DockerEnabled: s.cfg.DockerEnabled,
+		Status:         "online",
+		NodeID:         s.cfg.NodeID,
+		UptimeSeconds:  int64(time.Since(s.started).Seconds()),
+		Version:        version.Current(),
+		DockerEnabled:  s.cfg.DockerEnabled,
+		OwnershipState: s.currentOwnershipState(),
 	})
+}
+
+func (s *Server) currentOwnershipState() string {
+	if s.ownershipState == nil {
+		return ""
+	}
+	return s.ownershipState()
 }
 
 func (s *Server) dockerInfo(w http.ResponseWriter, r *http.Request) {

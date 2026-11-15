@@ -37,6 +37,10 @@ func NewRunner(cfg config.Config) *Runner {
 	}
 }
 
+func (r *Runner) OwnershipState() string {
+	return string(r.ownershipConnections.Status().State)
+}
+
 func (r *Runner) Run(ctx context.Context) {
 	log.Printf("Tyravex Agent started, node: %s", r.config.NodeID)
 	defer log.Println("Tyravex Agent stopped")

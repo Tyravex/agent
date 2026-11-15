@@ -19,9 +19,11 @@ func Run(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("API configuration: %w", err)
 	}
 
+	runner := NewRunner(cfg)
+
 	httpServer := &http.Server{
 		Addr:              address,
-		Handler:           api.NewServer(cfg).Handler(),
+		Handler:           api.NewServer(cfg, runner.OwnershipState).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
@@ -53,7 +55,7 @@ func Run(ctx context.Context, cfg config.Config) error {
 
 	go func() {
 		defer close(runnerDone)
-		NewRunner(cfg).Run(runnerCtx)
+		runner.Run(runnerCtx)
 	}()
 
 	var serverErr error
