@@ -1,0 +1,23 @@
+{
+  "token": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+  "binding": {
+    "nodeId": "node-1",
+    "serviceId": "service-1",
+    "jobId": "job-1",
+    "commandId": "command-1",
+    "sessionId": "session-1",
+    "expiresAt": "2026-11-15T00:00:30.000Z"
+  },
+  "envelope": {
+    "formatVersion": 1,
+    "nodeId": "node-1",
+    "serviceId": "service-1",
+    "jobId": "job-1",
+    "commandId": "command-1",
+    "sessionId": "session-1",
+    "expiresAt": "2026-11-15T00:00:30.000Z",
+    "iv": "AQEBAQEBAQEBAQEB",
+    "tag": "ZGuegZ1VR/XCCb4coRNZMQ==",
+    "ciphertext": "WU4lcTTvDXg5xDqsH+SLmyLTTy+qANgP"
+  }
+}

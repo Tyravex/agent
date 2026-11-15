@@ -324,7 +324,7 @@ func (c *Client) handshake(
 			Capabilities []string `json:"capabilities"`
 		}{
 			AgentVersion: agentVersion,
-			Capabilities: []string{},
+			Capabilities: protocol.ServiceInstallationCapabilities(),
 		},
 	)
 	if err != nil {
